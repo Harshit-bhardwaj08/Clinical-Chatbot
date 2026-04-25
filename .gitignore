@@ -1,0 +1,38 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Sensitive Configuration
+.env
+users.json
+
+# Large Data & Vector Stores
+data/vector_store/
+data/raw.json
+*.faiss
+*.pkl
+
+# Streamlit & Local App Data
+.streamlit/config.toml
+.streamlit/credentials.toml
+
+# IDE Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Specific
+.DS_Store
+Thumbs.db

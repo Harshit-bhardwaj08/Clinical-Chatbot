@@ -1,0 +1,93 @@
+SIMPLE GUIDE: HOW TO RUN THE CLINICAL CHATBOT
+
+Welcome! This guide is designed for anyone to follow, even if you have never used code or technical software before. Just follow these steps one by one.
+
+---
+
+STEP 1: INSTALL THE ESSENTIALS
+
+You need two free programs on your computer to run this chatbot:
+
+1. Python: 
+   - Go to https://www.python.org/downloads/
+   - Click the "Download Python" button.
+   - IMPORTANT: When the installer starts, make sure to check the box that says "Add Python to PATH" before clicking Install.
+
+2. Ollama:
+   - Go to https://ollama.com/
+   - Download and install it for your computer.
+   - Once installed, open it and let it run in the background.
+
+---
+
+STEP 2: PREPARE THE BRAIN (THE AI MODEL)
+
+1. Open your computer's "Command Prompt" (type 'cmd' in your Windows search bar).
+2. Type exactly this and press Enter:
+   ollama pull llama3.2:3b
+3. Wait for it to finish downloading. This is the AI model that will answer your questions.
+
+---
+
+STEP 3: OPEN THE PROJECT FOLDER
+
+1. Open the folder where you have this project saved.
+2. Click in the address bar at the top of the folder window, type 'cmd', and press Enter. 
+3. A black window (terminal) will open up, already pointing to this folder.
+
+---
+
+STEP 4: SET UP THE APP ENVIRONMENT
+
+In that black window, type these lines one after another (press Enter after each):
+
+1. Create a workspace:
+   python -m venv venv
+
+2. Activate the workspace:
+   .\venv\Scripts\activate
+
+3. Install the app ingredients:
+   pip install -r requirements.txt
+
+---
+
+STEP 5: PREPARE THE MEDICAL DATA
+
+Now, we need to let the AI read the medical files. Type this and press Enter:
+
+python main.py --ingest
+
+(Note: This might take a few minutes as it reads thousands of medical records.)
+
+---
+
+STEP 6: START THE CHATBOT
+
+To see the chatbot in your web browser, follow these final steps:
+
+1. In the same black window, type:
+   uvicorn app.api_server:app --port 8000
+   (Leave this window open! This is the "engine" of the chatbot.)
+
+2. Open a SECOND black window (repeat Step 3).
+3. Type:
+   .\venv\Scripts\activate
+4. Type:
+   streamlit run app/streamlit_app.py
+
+---
+
+STEP 7: START CHATTING!
+
+- Your web browser should automatically open to a page showing the chatbot.
+- Log in using:
+  Username: admin
+  Password: admin123
+- Accept the medical consent form.
+- Start asking questions about symptoms or medical conditions!
+
+---
+
+TROUBLESHOOTING TIP:
+If you see an error about "python not found," make sure you checked the "Add to PATH" box in Step 1. If you missed it, just uninstall Python and reinstall it with that box checked.
