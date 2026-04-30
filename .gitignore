@@ -36,3 +36,6 @@ data/raw.json
 # OS Specific
 .DS_Store
 Thumbs.db
+
+
+instruction.txt

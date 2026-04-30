@@ -1,0 +1,458 @@
+{
+  "chats": {
+    "9c0c0380-92fd-4e92-8b4a-82092496acec": {
+      "title": "what is typhoid?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Typhoid** fever is a bacterial infection caused by Salmonella Typhi, spread through contaminated food and water.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what are the symptoms of it?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **It** include:\n\n- High fever\n- Weakness and fatigue\n- Headache\n- Stomach pain\n- Loss of appetite\n\nIf symptoms persist or worsen, seek medical attention.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-04-29 18:03"
+    },
+    "2e55b9db-2d79-4852-b321-a40cdaf1149b": {
+      "title": "what is daibetes?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is daibetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough retrieved medical evidence to answer this reliably.",
+          "confidence": "low"
+        },
+        {
+          "role": "user",
+          "content": "what is daibetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough retrieved medical evidence to answer this reliably.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-04-29 18:04"
+    },
+    "b4624a3f-5b0e-4efe-aad3-4c3f7766dbe8": {
+      "title": "what are the symptoms of diabe",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what are the symptoms of diabetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Diabetes** include:\n\n- Increased thirst and urination\n- Fatigue\n- Blurred vision\n\nIf symptoms persist or worsen, seek medical attention.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "what is diabetes how many types exist for it?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Diabetes how many types exist for it** is diabetes is a group of metabolic disorders characterized by high blood sugar levels. There are several types of diabetes, including:",
+          "confidence": "medium"
+        }
+      ],
+      "timestamp": "2026-04-29 18:05"
+    },
+    "79b75a73-37a5-44ee-8361-8ce25588da64": {
+      "title": "what is daibetes?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is daibetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough retrieved medical evidence to answer this reliably.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-04-29 18:06"
+    },
+    "06b49762-8e8d-414d-abb8-1334c79d05d1": {
+      "title": "what is typhoid?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Typhoid** fever is a bacterial infection caused by Salmonella typhi, spread through contaminated food and water. It primarily affects the gastrointestinal tract.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-04-29 18:21"
+    },
+    "a6991c23-43a7-4bb3-98fc-6e7a4b435c80": {
+      "title": "what is daibetes?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is daibetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough retrieved medical evidence to answer this reliably.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-04-29 18:22"
+    },
+    "275b99de-be5b-4b78-8236-e3ad176d0154": {
+      "title": "diabetes?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "diabetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Diabetes** is a group of metabolic disorders characterized by high blood sugar levels, which can lead to a variety of complications if left untreated or poorly managed. Symptoms of **Diabetes** include: Treatment plan for diabetes includes:\n\n- Polyuria\n- Polydipsia\n- Unexplained weight loss\n- Severe tiredness\n- Blurred vision\n- Achieving strict glucose control\n- Monitoring blood sugar levels regularly\n- Dietary adjustments** may include reducing carbohydrate intake, increasing fiber consumption, and eating more protein and healthy fats\n- Physical activity** can help improve insulin sensitivity and reduce blood sugar levels\n- Blurred vision Treatment plan for diabetes includes",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-04-29 18:22"
+    },
+    "0607e1d3-c325-4bbf-9a34-feaf7691d9c1": {
+      "title": "what is diabetes?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is diabetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Diabetes** is a group of metabolic disorders characterized by high blood sugar levels, resulting from defects in insulin secretion, insulin action, or both. It affects the way the body processes glucose, a primary source of energy.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what are the symptoms of itt?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough retrieved medical evidence to answer this reliably.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-04-29 18:22"
+    },
+    "354c1ff7-febc-4abd-b41c-2657e318abb5": {
+      "title": "hi ",
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi "
+        },
+        {
+          "role": "assistant",
+          "content": "Here are the relevant clinical points:\n\n- The answers to your queries are as follows\n- I wanted to get a second opinion whether I could have this\n- Patient: Hello doctor,I am a software professional\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "hi doctor"
+        },
+        {
+          "role": "assistant",
+          "content": "I can't provide a diagnosis or answer questions about the patient's behavior and symptoms. If you have concerns about your own behavior or mental health, I encourage you to reach out to a qualified healthcare professional or a crisis hotline for support. Is there anything else I can help you with?\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "what is typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "First of all, jaundice is a symptom, and **Typhoid** fever is a diagnosis.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-04-29 19:53"
+    },
+    "6ddd7bdf-2a19-4a43-9716-7c20ae14e2c1": {
+      "title": "what is typhoid?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Typhoid** fever is an infectious disease caused by the bacterium Salmonella Typhi (S. Typhi).\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what are the symptom sof typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Typhoid** include:\n\n- Headache\n- Muscle pain or weakness\n- Nausea and vomiting\n- Abdominal pain\n- Diarrhea\n- Rash (in some cases)\n\nIf symptoms persist or worsen, seek medical attention.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "what is the treatment?"
+        },
+        {
+          "role": "assistant",
+          "content": "Based on the provided MEDICAL CONTEXT and CONVERSATION HISTORY, the **Treatment** for typhoid fever typically involves: 1. Antibiotics: A 7-10 day course of antibiotics, such as Ciprofloxacin (500 mg), is usually prescribed to kill the Salmonella Typhi bacteria.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "what  are the precautions i vcan take?"
+        },
+        {
+          "role": "assistant",
+          "content": "Based on the MEDICAL CONTEXT, the following precautions can be taken to prevent typhoid:\n\n- Maintain good personal hygiene\n- Use allergy-free barrier contraception\n- Avoid using allergic products and lubricants\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "what is daibetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Diabetes** is a chronic metabolic disorder characterized by high blood glucose levels, resulting from defects in insulin secretion, insulin action, or both. Key characteristics include:\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "how  many types of diabetes are there in the world?"
+        },
+        {
+          "role": "assistant",
+          "content": "There are several types of diabetes, which can be broadly classified into two main categories: Type 1 and Type 2. Additionally, there are other forms of diabetes, including:\n\n- Gestational diabetes: a type of diabetes that develops during pregnancy\n- LADA (Latent Autoimmune Diabetes in Adults): a form of Type 1 diabetes that develops later in life\n- MODY (Maturity-Onset Diabetes of the Young): a rare form of diabetes caused by genetic mutations\n- Secondary diabetes: a type of diabetes caused by another medical condition or treatment\n- Pancreatic diabetes: a rare form of diabetes caused by damage to the pancreas\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "what are the symptoms of it ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **It** include:\n\n- Excessive thirst (polydipsia)\n- Polyuria (excessive urination)\n- Flushing\n- Headaches\n- Dizziness or fainting\n- Weight loss\n- Electrolyte imbalances (potentially leading to cardiac arrhythmias, seizures, and coma in severe cases)\n- Electrolyte imbalances (potentially leading to cardiac arrhythmias, seizures, and coma in severe cases) These symptoms are primarily caused by the lack of ADH hormone secretion, which leads to an inability to regulate water balance in the body\n\nIf symptoms persist or worsen, seek medical attention.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "what is the ttreatment of it ?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Treatments of it** is can you please rephrase your question and I'll do my best to help?\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what is the treatment of diabetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Treatment of diabetes** is based on the provided medical context, there are different types of diabetes with varying treatment approaches. Here's a summary: In general, achieving strict glucose control is crucial, with ideal fasting glucose <100 mg/dL, postprandial glucose (PP) 150-170 mg/dL, and HbA1c % less than 6.8% for most adults.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what is hypertension?"
+        },
+        {
+          "role": "assistant",
+          "content": "Along with this strict control of diabetes and **Hypertension** is required.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what rae the symptoms of hypertension ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Hypertension** include:\n\n- Headache\n- Fatigue\n- Palpitations\n- Excessive sweating\n- Flushing\n- Anxiety\n\nIf symptoms persist or worsen, seek medical attention.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        }
+      ],
+      "timestamp": "2026-04-29 19:55"
+    },
+    "fdd3ed91-9f9e-489a-9cb4-a042dfebb3a7": {
+      "title": "what is hypertension?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is hypertension?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough reliable information in the provided context to answer this question.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "low"
+        },
+        {
+          "role": "user",
+          "content": "what is the treatment of hypertension?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Treatment of hypertension** is based on the provided medical context, I can provide information on hypertension treatment. However, please note that specific treatments may vary depending on individual circumstances and doctor recommendations.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what  is  the  precautions i can take in hypertension?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Precautions i can take in hypertension** is for patients with hypertension, several precautions are recommended to help manage the condition and reduce the risk of complications: Consult with your doctor before starting or changing any new medications or treatments.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-04-29 19:59"
+    },
+    "1bb69e2b-f171-4b51-8320-4dcc9ed120be": {
+      "title": "what is the precautions i can ",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is the precautions i can take in hypertension?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough reliable information in the provided context to answer this question.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-04-29 20:00"
+    },
+    "370b9583-5060-4963-95cc-3963c80394b6": {
+      "title": "what is daibetes?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is daibetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "Central **Diabetes** insipidus is a very rare case of diabetes.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what is diabetes?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Diabetes** is a group of metabolic disorders characterized by high blood sugar levels, resulting from defects in insulin secretion, insulin action, or both. Key characteristics: + Type 2: Insulin resistance and impaired insulin secretion\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-04-29 20:01"
+    },
+    "929d3359-10c9-422f-b66d-5f024e812f1a": {
+      "title": "what is the herat disease ?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is the herat disease ?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough reliable information in the provided context to answer this question. The medical context mentions various waterborne diseases, but it does not specifically mention \"heat diseases\" or conditions related to hypersensitivity to heat.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-04-29 20:01"
+    },
+    "337cc64a-3cd6-46c4-92f0-798bf76f44e2": {
+      "title": "what is heart disease?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is heart disease?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Heart diseases** is heart disease refers to a broad range of conditions that affect the heart and blood vessels, including coronary artery disease, heart failure, arrhythmias, and valve disorders. Key characteristics:\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what are the symptoms of heart disease?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Heart diseases** include:\n\n- Chest pain or discomfort (angina)\n- Shortness of breath\n- Fatigue\n- Swelling in the legs and ankles\n- Pale or blue-tinged skin\n- Rapid or irregular heartbeat\n- Rapid or irregular heartbeat Please note that these symptoms can also be present in other conditions, and a proper diagnosis by a healthcare professional is necessary for accurate assessment\n\nIf symptoms persist or worsen, seek medical attention.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "how many types of heart disease are there?"
+        },
+        {
+          "role": "assistant",
+          "content": "There are several types of heart diseases, including:\n\n1. Coronary artery disease\n2. Heart failure\n3. Arrhythmias (abnormal heart rhythms)\n4. Valve disorders (problems with the heart valves)\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "what is cancer?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough reliable information in the provided context to answer this question.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "low"
+        },
+        {
+          "role": "user",
+          "content": "what are the symptoms of cancer?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **If cancer** include:\n\n- Painless lump\n- Change in breast size\n- Skin changes\n- Nipple inversion\n- Nipple abnormalities or discharge\n- Axillary lump\n\nIf symptoms persist or worsen, seek medical attention.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-04-29 20:02"
+    },
+    "91fd9249-01eb-4354-9364-316e230724e7": {
+      "title": "what are the types of cancer?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what are the types of cancer?"
+        },
+        {
+          "role": "assistant",
+          "content": "In the provided medical context, there are two main types of leukemia mentioned:\n\n1. Acute leukemia\n2. Chronic leukemia\n\nAdditionally, the doctor mentions breast cancer as a rare type of cancer in males, but notes that it is more aggressive with rapid growth and spread.\n\nThere is also mention of cervical carcinoma, which is described as an invasive cancer, specifically a well-differentiated type of adenocarcinoma.\n\nThis is not a diagnosis. Consult a healthcare professional.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-04-29 20:03"
+    },
+    "ea370d5c-246b-4dbb-90c0-45211df0ff45": {
+      "title": "New Chat",
+      "messages": [],
+      "timestamp": "2026-04-30 15:05"
+    }
+  },
+  "current_chat": "ea370d5c-246b-4dbb-90c0-45211df0ff45",
+  "saved_at": "2026-04-30T15:05:47"
+}

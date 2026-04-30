@@ -102,6 +102,20 @@ def _get_chain():
     return _chain
 
 
+def _warm_chain_background() -> None:
+    """Warm retrieval + LLM chain on startup so first query is faster."""
+    try:
+        _get_chain()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Background warmup failed: %s", exc)
+
+
+@app.on_event("startup")
+def _startup_warmup() -> None:
+    """Start non-blocking warmup to reduce first-request latency."""
+    threading.Thread(target=_warm_chain_background, daemon=True).start()
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 @app.get("/health")
 def health():

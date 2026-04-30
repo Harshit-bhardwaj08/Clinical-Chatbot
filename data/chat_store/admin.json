@@ -1,0 +1,93 @@
+{
+  "chats": {
+    "f48fbb27-e16e-4407-ae4e-4c6bebae976d": {
+      "title": "What are the common symptoms o",
+      "messages": [
+        {
+          "role": "user",
+          "content": "What are the common symptoms of Type 2 Diabetes in adults?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Type 2 Diabetes in adults** include:\n\n- Increased thirst and urination\n- Fatigue\n- Blurred vision\n\nIf symptoms persist or worsen, seek medical attention.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "How is hypertension managed through diet and lifestyle changes?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Hypertension Management** Hypertension can be effectively managed through diet and lifestyle changes, which include:\n\n- Reducing sodium intake\n- Increasing potassium-rich foods\n- Eating a balanced diet rich in fruits and green leafy vegetables\n- Engaging in regular physical activity, such as brisk walking or jogging\n- Maintaining a healthy weight\n- Getting adequate sleep (at least 6 hours at night and 1-2 hours during the day)\n- Avoiding alcohol, caffeine, and nicotine\n\nTreatment should be prescribed by a qualified clinician based on clinical evaluation, tests, and local resistance patterns.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "Tell me about the treatment options for community-acquired pneumonia"
+        },
+        {
+          "role": "assistant",
+          "content": "**Community-Acquired Pneumonia (CAP)** treatment typically involves antibiotics, which may be given intravenously or orally. The choice of antibiotic depends on the severity of the infection, the patient's age and health status, and local resistance patterns.\n\n- Point: In general, CAP is treated with a 7- to 10-day course of antibiotics\n- Safety: Treatment should be guided by clinician judgment based on clinical presentation, laboratory results, and local resistance patterns\n\nTreatment should be prescribed by a qualified clinician based on clinical evaluation, tests, and local resistance patterns.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "What are the early warning signs of a myocardial infarction?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Myocardial infarction** include:\n\n- Chest pain or discomfort\n- Shortness of breath\n- Cold sweats\n- Lightheadedness or dizziness\n- Nausea and vomiting\n- Fatigue or weakness\n\nIf symptoms persist or worsen, seek medical attention.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "Can you define systemic lupus erythematosus and its primary causes?"
+        },
+        {
+          "role": "assistant",
+          "content": "Common causes of **Systemic lupus erythematosus and its primary causes** include:\n\n- the skin\n- joints\n- kidneys\n- brain\n- other organs\n- an abnormal immune response\n- where the body's immune system mistakenly attacks healthy tissues\n- genetic predisposition\n- environmental factors\n- hormonal influences",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "What are the diagnostic criteria for rheumatoid arthritis?\"\n\"Explain the difference between osteoarthritis and rheumatoid arthritis."
+        },
+        {
+          "role": "assistant",
+          "content": "**Rheumatoid Arthritis (RA) vs. Osteoarthritis (OA)** is a common confusion, but they have distinct differences in terms of their underlying causes, symptoms, and diagnostic criteria. **Diagnostic Criteria for Rheumatoid Arthritis** The American College of Rheumatology (ACR) defines **Rheumatoid Arthritis (RA)** as an autoimmune disorder characterized by inflammation and pain in the joints.\n\n- Morning stiffness lasting more than 1 hour\n- Swelling, redness, or warmth in two or more joints\n- Symmetrical joint involvement (e.g., both hands or both feet)\n- Joint tenderness or pain\n- ESR (erythrocyte sedimentation rate) or CRP (C-reactive protein) levels above normal\n- Joint pain or stiffness\n- Limited range of motion\n- No systemic symptoms\n- Inflammation**: RA is an inflammatory condition, while OA is a degenerative joint disease\n- Joint involvement**: RA typically affects multiple joints symmetrically, whereas OA usually affects one joint at a time",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "What are the side effects of common antibiotics like amoxicillin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Paresthesia** include: If symptoms persist or worsen, seek medical attention.\n\n- Burning or prickling sensation\n- Weakness or fatigue\n- Muscle cramps or spasms\n\nTreatment should be prescribed by a qualified clinician based on clinical evaluation, tests, and local resistance patterns.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "How does the treatment for MDR-Tuberculosis differ from standard TB?"
+        },
+        {
+          "role": "assistant",
+          "content": "**MDR-Tuberculosis treatment** differs from standard TB in that it requires a longer treatment duration, typically 20 months, and involves the use of fluoroquinolones, capreomycin, and other second-line drugs.\n\nTreatment should be prescribed by a qualified clinician based on clinical evaluation, tests, and local resistance patterns.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "What are the long-term complications of untreated chronic kidney disease?"
+        },
+        {
+          "role": "assistant",
+          "content": "****Untreated chronic kidney disease** Complications** Symptoms of **Untreated Chronic Kidney Disease** include: If symptoms persist or worsen, seek medical attention. Safety note: Untreated chronic kidney disease can lead to life-threatening complications, including cardiovascular disease, anemia, and bone disease.\n\n- Fatigue\n- Swelling in legs, ankles, and feet\n- High blood pressure\n- Anemia\n- Bone disease (osteodystrophy)\n- Skin problems (pruritus, hyperpigmentation)\n- Increased risk of infections\n\nTreatment should be prescribed by a qualified clinician based on clinical evaluation, tests, and local resistance patterns.",
+          "confidence": "medium"
+        }
+      ],
+      "timestamp": "2026-04-30 23:13"
+    }
+  },
+  "current_chat": "f48fbb27-e16e-4407-ae4e-4c6bebae976d",
+  "saved_at": "2026-04-30T23:25:11"
+}

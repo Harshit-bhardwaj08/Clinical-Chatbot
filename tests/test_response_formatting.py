@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from src.rag_chain import _shape_answer_for_intent
+from src.rag_chain import _final_quality_cleanup, _format_context, _shape_answer_for_intent
 
 
 def _doc(text: str):
@@ -15,7 +15,7 @@ def test_definition_query_returns_concise_summary_without_bullets():
 
     result = _shape_answer_for_intent(question=question, answer=answer, docs=[], history=[])
 
-    assert "**Typhoid**" in result
+    assert "I do not have enough reliable information in the provided context to answer this question." in result
     assert "- " not in result
 
 
@@ -52,6 +52,33 @@ def test_symptom_answer_can_use_docs_when_llm_has_no_bullets():
 
     result = _shape_answer_for_intent(question=question, answer=answer, docs=docs, history=[])
 
-    assert "Symptoms of **Dengue** include:" in result
+    assert "Symptoms of **Dengue fever** include:" in result
     assert "- high fever".lower() in result.lower()
     assert "- headache".lower() in result.lower()
+
+
+def test_context_formatting_removes_dialogue_labels():
+    docs = [
+        _doc("Patient: I have chest pain. Doctor: Chest pain can be evaluated clinically."),
+    ]
+
+    result = _format_context(docs)
+
+    assert "Patient:" not in result
+    assert "Doctor:" not in result
+    assert "Chest pain" in result
+
+
+def test_final_cleanup_removes_duplicate_bullets_and_raw_labels():
+    answer = (
+        "Patient: Symptoms include:\n"
+        "- Headache\n"
+        "- Headache\n"
+        "Doctor: This is not a diagnosis. Consult a healthcare professional."
+    )
+
+    result = _final_quality_cleanup(answer)
+
+    assert "Patient:" not in result
+    assert "Doctor:" not in result
+    assert result.count("- Headache") == 1

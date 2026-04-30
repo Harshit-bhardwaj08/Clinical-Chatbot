@@ -41,5 +41,5 @@ def test_pipeline_formatting_robustness():
     assert isinstance(clean, str)
     
     # Check definition formatting
-    clean_def = _format_definition_answer("Fake Disease", bad_answer)
-    assert "**Fake Disease**" in clean_def or "evaluated clinically" in clean_def
+    clean_def = _format_definition_answer("Fake Disease", bad_answer, docs=[])
+    assert "I do not have enough reliable information in the provided context to answer this question." in clean_def

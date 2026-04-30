@@ -46,8 +46,7 @@ def check_environment():
         import streamlit          # noqa: F401
         import ollama             # noqa: F401
         import datasets           # noqa: F401
-        import sklearn            # noqa: F401
-        log.info("All imports OK ✓")
+        log.info("All imports OK")
     except ImportError as exc:
         log.error("Import failed: %s", exc)
         log.error("Run:  pip install -r requirements.txt")

@@ -1,0 +1,21 @@
+{
+  "chats": {
+    "91b901d4-c144-4fc6-93ad-48d52a5b5150": {
+      "title": "how much gulcose it is present",
+      "messages": [
+        {
+          "role": "user",
+          "content": "how much gulcose it is present with and without fasting"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Just heard of refeeding syndrome** include:\n\n- Fasting blood sugar: 159.8 mg/dL\n- Postprandial (after meal) blood sugar: 280.7 mg/dL\n- Blood Sugar Levels**\n\nIf symptoms persist or worsen, seek medical attention.",
+          "confidence": "medium"
+        }
+      ],
+      "timestamp": "2026-04-30 18:56"
+    }
+  },
+  "current_chat": "91b901d4-c144-4fc6-93ad-48d52a5b5150",
+  "saved_at": "2026-04-30T19:04:47"
+}

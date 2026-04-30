@@ -9,6 +9,7 @@ just use: streamlit run app/streamlit_app.py
 import uuid
 import time
 import re
+import json
 import requests
 import streamlit as st
 from datetime import datetime
@@ -30,8 +31,352 @@ from src.config import API_URL
 from src.auth import (
     verify_credentials,
     add_user,
-    user_exists
+    user_exists,
+    create_session_token,
+    validate_session_token,
 )
+
+_AUTH_QUERY_KEY = "auth_token"
+_CHAT_STORE_DIR = Path(__file__).resolve().parent.parent / "data" / "chat_store"
+
+
+def _safe_username_for_path(username: str) -> str:
+    username = (username or "").strip().lower()
+    return re.sub(r"[^a-z0-9.-]+", "_", username) or "anonymous"
+
+
+def _chat_store_path(username: str) -> Path:
+    return _CHAT_STORE_DIR / f"{_safe_username_for_path(username)}.json"
+
+
+def _load_chats_from_disk(username: str) -> tuple[dict, str | None]:
+    path = _chat_store_path(username)
+    if not path.exists():
+        return {}, None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        chats = payload.get("chats") or {}
+        current_chat = payload.get("current_chat")
+        if not isinstance(chats, dict):
+            return {}, None
+        if current_chat and current_chat not in chats:
+            current_chat = None
+        return chats, current_chat
+    except Exception:
+        return {}, None
+
+
+def _save_chats_to_disk(username: str, chats: dict, current_chat: str | None) -> None:
+    _CHAT_STORE_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "chats": chats,
+        "current_chat": current_chat,
+        "saved_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    _chat_store_path(username).write_text(
+        json.dumps(payload, ensure_ascii=True, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _persist_chats_if_authenticated() -> None:
+    if not st.session_state.get("authenticated", False):
+        return
+    username = st.session_state.get("current_user", {}).get("username", "")
+    if not username:
+        return
+    _save_chats_to_disk(
+        username,
+        st.session_state.get("chats", {}),
+        st.session_state.get("current_chat"),
+    )
+
+
+def _get_auth_token_from_url() -> str:
+    try:
+        return str(st.query_params.get(_AUTH_QUERY_KEY, "")).strip()
+    except Exception:
+        return ""
+
+
+def _set_auth_token_in_url(token: str) -> None:
+    try:
+        if token:
+            st.query_params[_AUTH_QUERY_KEY] = token
+        elif _AUTH_QUERY_KEY in st.query_params:
+            del st.query_params[_AUTH_QUERY_KEY]
+    except Exception:
+        pass
+
+
+def _restore_auth_from_url() -> None:
+    token = _get_auth_token_from_url()
+    if not token:
+        return
+
+    ok, user_record, consent_given = validate_session_token(token)
+    if not ok:
+        _set_auth_token_in_url("")
+        return
+
+    st.session_state.authenticated = True
+    st.session_state.current_user = user_record
+    st.session_state.consent_given = consent_given
+    st.session_state.login_error = ""
+
+
+def _refresh_auth_token(consent_given: bool) -> None:
+    username = st.session_state.get("current_user", {}).get("username", "").strip().lower()
+    if not username:
+        return
+    _set_auth_token_in_url(create_session_token(username, consent_given=consent_given))
+
+
+_SIDEBAR_SEARCH_HTML = """
+<div class="mc-search" role="search">
+  <span class="mc-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none">
+      <circle cx="11" cy="11" r="7.5" stroke="currentColor" stroke-width="2"></circle>
+      <line x1="16.6" y1="16.6" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+    </svg>
+  </span>
+  <input id="mc-input" type="text" autocomplete="off" />
+  <button id="mc-clear" type="button" aria-label="Clear search" title="Clear">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M18 6L6 18M6 6l12 12"></path>
+    </svg>
+  </button>
+</div>
+"""
+
+_SIDEBAR_SEARCH_CSS = """
+.mc-search{
+  width:100%;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  position:relative;
+  background:#2f2f36;
+  border:1px solid transparent;
+  border-radius:12px;
+  padding:0;
+  margin-top:8px;
+}
+.mc-search:focus-within{
+  border-color: rgba(255,255,255,0.20);
+}
+.mc-icon{
+  position:absolute;
+  left:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  color:#a8adb7;
+  pointer-events:none;
+}
+.mc-icon svg{ width:18px; height:18px; }
+#mc-input{
+  width:100%;
+  box-sizing:border-box;
+  border:none;
+  outline:none;
+  background:transparent;
+  color:#ececec;
+  font-size:16px;
+  line-height:1.2;
+  padding:10px 38px 10px 40px;
+  font-family: inherit;
+}
+#mc-input::placeholder{
+  color:#a8adb7;
+}
+#mc-clear{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  width:22px;
+  height:22px;
+  border:none;
+  border-radius:999px;
+  background: rgba(255,255,255,0.12);
+  color:#ffffff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+#mc-clear svg{
+  width:12px;
+  height:12px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+}
+#mc-clear:hover{
+  background: rgba(255,255,255,0.22);
+  color:#ffffff;
+}
+"""
+
+_SIDEBAR_SEARCH_JS = """
+const _mcInstances = new WeakMap();
+
+export default function(component) {
+  const { parentElement, data, setStateValue } = component;
+  const input = parentElement.querySelector("#mc-input");
+  const clearBtn = parentElement.querySelector("#mc-clear");
+  if (!input || !clearBtn) return;
+
+  const placeholder = (data && data.placeholder) ? data.placeholder : "Search chats";
+  input.placeholder = placeholder;
+
+  const nextValue = (data && data.value != null) ? String(data.value) : "";
+  if (document.activeElement !== input && input.value !== nextValue) {
+    input.value = nextValue;
+  }
+
+  let inst = _mcInstances.get(parentElement);
+  if (!inst) {
+    inst = {
+      lastSent: nextValue,
+      ignoreBlurOnce: false,
+    };
+
+    inst.setClearVisibility = () => {
+      const has = !!(input.value && input.value.length);
+      clearBtn.style.opacity = has ? "1" : "0";
+      clearBtn.style.pointerEvents = has ? "auto" : "none";
+    };
+
+    inst.applyLocalFilter = (raw) => {
+      const term = String(raw ?? "").trim().toLowerCase();
+      const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+      if (!sidebar) return;
+      const hook = sidebar.querySelector(".recent-chats-scroll-hook");
+      if (!hook) return;
+
+      const hookContainer = hook.closest('[data-testid="stElementContainer"]');
+      const recentsBlock = hookContainer ? hookContainer.parentElement : null;
+      if (!recentsBlock) return;
+
+      const rows = recentsBlock.querySelectorAll('[data-testid="stHorizontalBlock"]');
+      rows.forEach((row) => {
+        const titleBtn = row.querySelector(".stButton button");
+        if (!titleBtn) return;
+        const txt = String(titleBtn.textContent || "").trim().toLowerCase();
+        const show = !term || txt.includes(term);
+        row.style.display = show ? "" : "none";
+      });
+    };
+
+    inst.emit = () => {
+      inst.setClearVisibility();
+      const val = input.value ?? "";
+      if (val === inst.lastSent) return;
+      inst.lastSent = val;
+      setStateValue("value", val);
+    };
+
+    inst.onInput = () => {
+      inst.setClearVisibility();
+      inst.applyLocalFilter(input.value);
+    };
+
+    inst.onKeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        inst.emit();
+      }
+    };
+
+    inst.onBlur = () => {
+      if (inst.ignoreBlurOnce) {
+        inst.ignoreBlurOnce = false;
+        return;
+      }
+      inst.emit();
+    };
+
+    // mousedown happens before blur/click; guard blur early to avoid flicker reruns.
+    inst.onClearMouseDown = (e) => {
+      inst.ignoreBlurOnce = true;
+      e.preventDefault();
+    };
+
+    inst.onClear = (e) => {
+      e.preventDefault();
+      input.value = "";
+      inst.applyLocalFilter("");
+      // Force a single state sync so cleared search survives future reruns.
+      inst.lastSent = "__mc_force_clear__";
+      inst.emit();
+      input.focus();
+    };
+
+    input.addEventListener("input", inst.onInput);
+    input.addEventListener("keydown", inst.onKeydown);
+    input.addEventListener("blur", inst.onBlur);
+    clearBtn.addEventListener("mousedown", inst.onClearMouseDown);
+    clearBtn.addEventListener("click", inst.onClear);
+    _mcInstances.set(parentElement, inst);
+  }
+
+  inst.setClearVisibility();
+  inst.applyLocalFilter(input.value);
+
+  return () => {
+    const cur = _mcInstances.get(parentElement);
+    if (!cur) return;
+    input.removeEventListener("input", cur.onInput);
+    input.removeEventListener("keydown", cur.onKeydown);
+    input.removeEventListener("blur", cur.onBlur);
+    clearBtn.removeEventListener("mousedown", cur.onClearMouseDown);
+    clearBtn.removeEventListener("click", cur.onClear);
+    _mcInstances.delete(parentElement);
+  };
+}
+"""
+
+try:
+    _sidebar_search_component = st.components.v2.component(
+        "medichat_sidebar_search",
+        html=_SIDEBAR_SEARCH_HTML,
+        css=_SIDEBAR_SEARCH_CSS,
+        js=_SIDEBAR_SEARCH_JS,
+    )
+except Exception:
+    _sidebar_search_component = None
+
+
+def sidebar_search_box(*, key: str = "sidebar_search_box", placeholder: str = "Search chats") -> str:
+    if _sidebar_search_component is None:
+        return st.text_input(
+            "Search chats",
+            placeholder=placeholder,
+            label_visibility="collapsed",
+            key=key,
+        )
+
+    state = st.session_state.get(key, {})
+    value = state.get("value", "") if isinstance(state, dict) else state
+    value = str(value or "")
+
+    result = _sidebar_search_component(
+        key=key,
+        data={"value": value, "placeholder": placeholder},
+        default={"value": value},
+        on_value_change=lambda: None,
+        width="stretch",
+        height="content",
+    )
+    return str(getattr(result, "value", value) or "")
 # ── The Design System ──
 # We're injecting custom CSS here to override Streamlit's defaults and achieve
 # that dark, minimalist "SaaS" aesthetic.
@@ -321,8 +666,8 @@ section[data-testid="stSidebar"] div[data-testid="stPopover"] {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 0 1.5rem 0;
-    margin-top: -1.8rem;
+    padding: 0 0 2.1rem 0;
+    margin-top: -0.80rem;
 }
 
 .branding-logo {
@@ -354,6 +699,7 @@ section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
     min-height: calc(100vh - 1.2rem) !important;
     display: flex !important;
     flex-direction: column !important;
+    overflow: hidden !important;
 }
 
 section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] > [data-testid="stVerticalBlock"],
@@ -362,6 +708,26 @@ section[data-testid="stSidebar"] [data-testid="stSidebarContent"] > [data-testid
     flex: 1 1 auto !important;
     display: flex !important;
     flex-direction: column !important;
+}
+
+/* Sidebar scroll scope: only Recents rows scroll */
+section[data-testid="stSidebar"] [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .recent-chats-scroll-hook) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: calc(100vh - 315px) !important;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    margin-top: 10px !important;
+    padding-bottom: 36px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(255,255,255,0.28) transparent !important;
+}
+section[data-testid="stSidebar"] [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .recent-chats-scroll-hook)::-webkit-scrollbar {
+    width: 4px !important;
+}
+section[data-testid="stSidebar"] [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .recent-chats-scroll-hook)::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.28) !important;
+    border-radius: 10px !important;
 }
 
 /* Anchor ONLY the footer wrapper (the block that directly contains sidebar-bottom-slot) */
@@ -635,20 +1001,28 @@ section[data-testid="stSidebar"] div[data-testid="stPopover"] .stButton button p
     bottom: 0.75rem !important;
 }
 
+[data-testid="stChatInput"] {
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
 [data-testid="stChatInput"] > div {
     position: relative !important;
     display: flex;
-    align-items: stretch !important;
+    align-items: flex-end !important;
     gap: 0.35rem;
+    min-width: 0 !important;
+    width: 100% !important;
     min-height: unset !important;
     height: auto !important;
+    max-height: 62px !important;
+    overflow: hidden !important;
     padding: 14px 0.3rem 14px 1.0rem !important;
     background: rgba(48, 51, 58, 0.78) !important;
     border: 1px solid rgba(255, 255, 255, 0.10) !important;
     border-radius: 26px !important;
     box-shadow: none !important;
     margin: 0 !important;
-    overflow: visible;
 }
 
 [data-testid="stChatInput"] > div > div,
@@ -656,7 +1030,10 @@ section[data-testid="stSidebar"] div[data-testid="stPopover"] .stButton button p
     display: flex !important;
     align-items: stretch !important;
     min-height: unset !important;
+    max-height: 34px !important;
     height: auto !important;
+    overflow: hidden !important;
+    min-width: 0 !important;
 }
 
 [data-testid="stChatInput"] textarea {
@@ -665,28 +1042,44 @@ section[data-testid="stSidebar"] div[data-testid="stPopover"] .stButton button p
     border-radius: 0px !important;
     margin-left: 0 !important;
     padding-left: 0.5rem !important;
+    padding-right: 2.7rem !important;
     color: #ececec !important;
     font-size: 19px !important;
     line-height: 1.3 !important;
-    min-height: 24px !important;
-    height: 24px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    max-height: 28px !important;
     padding-top: 3px !important;
     padding-bottom: 1px !important;
     caret-color: #ececec !important;
     outline: none !important;
     box-shadow: none !important;
     margin: 0 !important;
-    box-sizing: content-box !important;
+    box-sizing: border-box !important;
     resize: none !important;
     display: block !important;
     width: 100% !important;
-    overflow: hidden !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-y: hidden !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+}
+
+[data-testid="stChatInput"] textarea::-webkit-scrollbar {
+    display: none !important;
 }
 
 [data-testid="stChatInput"] [data-baseweb="base-input"] {
     display: block !important;
     height: auto !important;
     font-size: var(--chat-font-size) !important;
+    min-width: 0 !important;
+    width: 100% !important;
 }
 
 [data-testid="stChatInput"] textarea[data-testid="stChatInputTextArea"] {
@@ -703,6 +1096,8 @@ section[data-testid="stSidebar"] div[data-testid="stPopover"] .stButton button p
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
 }
 
 /* BaseWeb injects nested wrappers with default backgrounds; clear all layers */
@@ -893,6 +1288,8 @@ def init_session():
         st.session_state.login_error = ""
     if "auth_mode" not in st.session_state:
         st.session_state.auth_mode = "login"
+    if not st.session_state.get("authenticated", False):
+        _restore_auth_from_url()
 
     # ── Consent ───────────────────────────────────────────────────────────────
     if "consent_given" not in st.session_state:
@@ -909,9 +1306,23 @@ def init_session():
             }
         }
         st.session_state.current_chat = default_id
+    if "chats_loaded_for" not in st.session_state:
+        st.session_state.chats_loaded_for = ""
+    if st.session_state.get("authenticated", False):
+        username = st.session_state.get("current_user", {}).get("username", "")
+        if username and st.session_state.chats_loaded_for != username:
+            disk_chats, disk_current = _load_chats_from_disk(username)
+            if disk_chats:
+                st.session_state.chats = disk_chats
+                st.session_state.current_chat = disk_current or next(iter(disk_chats.keys()))
+            st.session_state.chats_loaded_for = username
 
     if "search_query" not in st.session_state:
         st.session_state.search_query = ""
+    if "pending_query" not in st.session_state:
+        st.session_state.pending_query = ""
+    if "pending_chat_id" not in st.session_state:
+        st.session_state.pending_chat_id = None
 
     # ── Sidebar panel toggles ─────────────────────────────────────────────────
     if "show_profile" not in st.session_state:
@@ -1059,7 +1470,7 @@ def render_login_page() -> None:
     # Error banner
     if st.session_state.login_error:
         st.markdown(
-            f"<div class='login-error'>🔒 {st.session_state.login_error}</div>",
+            f"<div class='login-error'>{st.session_state.login_error}</div>",
             unsafe_allow_html=True,
         )
 
@@ -1076,9 +1487,19 @@ def render_login_page() -> None:
         if st.button("Sign In", use_container_width=True, key="login_btn"):
             ok, user_record = verify_credentials(username, password)
             if ok:
+                normalized_username = username.strip().lower()
+                session_user = {
+                    "username": normalized_username,
+                    "display_name": user_record.get("display_name", normalized_username),
+                    "role": user_record.get("role", "user"),
+                }
                 st.session_state.authenticated = True
-                st.session_state.current_user = user_record
+                st.session_state.current_user = session_user
                 st.session_state.login_error = ""
+                st.session_state.consent_given = False
+                _set_auth_token_in_url(
+                    create_session_token(normalized_username, consent_given=False)
+                )
                 st.rerun()
             else:
                 st.session_state.login_error = "Incorrect username or password."
@@ -1124,10 +1545,20 @@ def render_login_page() -> None:
                 # Auto-login after registration
                 ok, user_record = verify_credentials(username, password)
                 if ok:
+                    normalized_username = username.strip().lower()
+                    session_user = {
+                        "username": normalized_username,
+                        "display_name": user_record.get("display_name", normalized_username),
+                        "role": user_record.get("role", "user"),
+                    }
                     st.session_state.authenticated = True
-                    st.session_state.current_user = user_record
+                    st.session_state.current_user = session_user
                     st.session_state.login_error = ""
                     st.session_state.auth_mode = "login"
+                    st.session_state.consent_given = False
+                    _set_auth_token_in_url(
+                        create_session_token(normalized_username, consent_given=False)
+                    )
                     st.rerun()
         
         st.markdown("<div style='text-align:center; margin-top:1rem;'>", unsafe_allow_html=True)
@@ -1235,20 +1666,27 @@ def render_consent_page() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    agreed = st.checkbox(
-        "I understand and agree",
-        key="consent_checkbox_full",
-    )
+    consent_controls = st.empty()
+    with consent_controls.container():
+        agreed = st.checkbox(
+            "I understand and agree",
+            key="consent_checkbox_full",
+        )
 
-    continue_btn = st.button(
-        "Continue to MediChat",
-        disabled=not agreed,
-        use_container_width=True,
-        key="consent_continue_btn",
-    )
+        continue_btn = st.button(
+            "Continue to MediChat",
+            disabled=not agreed,
+            use_container_width=True,
+            key="consent_continue_btn",
+        )
 
     if continue_btn and agreed:
         st.session_state.consent_given = True
+        st.session_state.consent_transitioning = True
+        _refresh_auth_token(consent_given=True)
+        consent_controls.empty()
+        st.empty()
+        time.sleep(0.08)
         st.rerun()
 
 # ── Sidebar Profile & Settings Helpers ────────────────────────────────────────
@@ -1274,7 +1712,7 @@ def render_sidebar():
         """, unsafe_allow_html=True)
 
         # New Chat Button
-        if st.button("✎  New chat", use_container_width=True):
+        if st.button("New chat", icon=":material/edit_square:", use_container_width=True):
             new_id = str(uuid.uuid4())
             st.session_state.chats[new_id] = {
                 "title": "New Chat",
@@ -1282,10 +1720,11 @@ def render_sidebar():
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
             }
             st.session_state.current_chat = new_id
+            _persist_chats_if_authenticated()
             st.rerun()
 
-        # Search Box
-        search_val = st.text_input("Search chats", placeholder="Search chats", label_visibility="collapsed")
+        # Search Box (real-time; no Enter required)
+        search_val = sidebar_search_box(key="sidebar_search_box", placeholder="Search chats")
 
         # Filter and Sort chats
         sorted_chats = sorted(
@@ -1298,29 +1737,33 @@ def render_sidebar():
 
         # Chat History List
         st.markdown("<div class='sidebar-label'>Recents</div>", unsafe_allow_html=True)
-        for chat_id, chat_data in sorted_chats:
+        recents_scroll_container = st.container()
+        with recents_scroll_container:
+            st.markdown("<div class='recent-chats-scroll-hook'></div>", unsafe_allow_html=True)
+            for chat_id, chat_data in sorted_chats:
 
-            col1, col2 = st.columns([0.88, 0.12])
-            with col1:
-                is_active = st.session_state.current_chat == chat_id
-                btn_label = f"{chat_data['title']}"
-                if st.button(btn_label, key=f"chat_{chat_id}", use_container_width=True):
-                    st.session_state.current_chat = chat_id
-                    st.rerun()
-            with col2:
-                with st.popover("⋯"):
-                    st.markdown("<div class='is-delete-popover'></div>", unsafe_allow_html=True)
-                    if st.button("Delete", key=f"del_{chat_id}", use_container_width=True):
-                        del st.session_state.chats[chat_id]
-                        if st.session_state.current_chat == chat_id:
-                            if st.session_state.chats:
-                                remaining = sorted(st.session_state.chats.items(), key=lambda x: x[1]['timestamp'], reverse=True)
-                                st.session_state.current_chat = remaining[0][0]
-                            else:
-                                new_id = str(uuid.uuid4())
-                                st.session_state.chats[new_id] = {"title": "New Chat", "messages": [], "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
-                                st.session_state.current_chat = new_id
+                col1, col2 = st.columns([0.88, 0.12])
+                with col1:
+                    is_active = st.session_state.current_chat == chat_id
+                    btn_label = f"{chat_data['title']}"
+                    if st.button(btn_label, key=f"chat_{chat_id}", use_container_width=True):
+                        st.session_state.current_chat = chat_id
                         st.rerun()
+                with col2:
+                    with st.popover("⋯"):
+                        st.markdown("<div class='is-delete-popover'></div>", unsafe_allow_html=True)
+                        if st.button("Delete", key=f"del_{chat_id}", use_container_width=True):
+                            del st.session_state.chats[chat_id]
+                            if st.session_state.current_chat == chat_id:
+                                if st.session_state.chats:
+                                    remaining = sorted(st.session_state.chats.items(), key=lambda x: x[1]['timestamp'], reverse=True)
+                                    st.session_state.current_chat = remaining[0][0]
+                                else:
+                                    new_id = str(uuid.uuid4())
+                                    st.session_state.chats[new_id] = {"title": "New Chat", "messages": [], "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
+                                    st.session_state.current_chat = new_id
+                            _persist_chats_if_authenticated()
+                            st.rerun()
 
         # ── Sidebar bottom: Profile & Settings ────────────────────────────────
         footer_container = st.container()
@@ -1343,6 +1786,7 @@ def render_sidebar():
                         }
                     }
                     st.session_state.current_chat = new_id
+                    _persist_chats_if_authenticated()
                     st.rerun()
 
             # Profile Popover
@@ -1360,6 +1804,7 @@ def render_sidebar():
                 """, unsafe_allow_html=True)
                 
                 if st.button("Log out", icon=":material/logout:", key="logout_pop_btn", use_container_width=True):
+                    _set_auth_token_in_url("")
                     st.session_state.clear()
                     st.rerun()
 
@@ -1370,20 +1815,22 @@ def render_chat():
     
     if len(current_chat["messages"]) == 0:
         import random
-        titles = ["Care starts here '' . '' ", "Support, when it matter!", "With you, Always :)"]
+        titles = ["Care starts here.", "Support, when it matters!", "With you, Always"]
         hero_title = random.choice(titles)
         st.markdown(f"<h2 class='hero-title'>{hero_title}</h2>", unsafe_allow_html=True)
         
     for msg in current_chat["messages"]:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"], unsafe_allow_html=False)
+            if msg.get("role") == "assistant" and msg.get("confidence"):
+                _render_confidence_badge(str(msg["confidence"]))
 
 
 # Confidence badge colours mapped to pipeline confidence levels.
-_CONF_STYLE: dict[str, tuple[str, str]] = {
-    "high":   ("#16a34a", "✦ High confidence"),
-    "medium": ("#d97706", "◈ Medium confidence"),
-    "low":    ("#dc2626", "▲ Low confidence — verify with a professional"),
+_CONF_STYLE = {
+    "high":   ("#16a34a", "High confidence"),
+    "medium": ("#d97706", "Medium confidence"),
+    "low":    ("#dc2626", "Low confidence - verify with a professional"),
 }
 
 
@@ -1412,7 +1859,7 @@ def _render_consent_gate() -> bool:
             border-radius:14px;padding:1.4rem 1.6rem;max-width:580px;
             margin:6vh auto 0 auto;">
           <p style="font-size:17px;font-weight:600;color:#f5f7fa;margin:0 0 0.6rem 0;">
-            ⚕️ Before you continue
+            Before you continue
           </p>
           <p style="font-size:14px;color:#a8adb7;line-height:1.6;margin:0 0 1rem 0;">
             MediChat provides information from medical literature for
@@ -1443,7 +1890,6 @@ def handle_input():
 
     # st.chat_input natively sticks to the bottom
     user_query = st.chat_input("How can I help with your health today?")
-
     if user_query:
         # Auto-name chat based on first query
         if len(current_chat["messages"]) == 0:
@@ -1451,19 +1897,45 @@ def handle_input():
 
         # Append User Message
         current_chat["messages"].append({"role": "user", "content": user_query})
+        _persist_chats_if_authenticated()
         with st.chat_message("user"):
             st.markdown(user_query, unsafe_allow_html=False)
 
         # Fetch and Render Assistant Response
         with st.chat_message("assistant"):
+            normalized_query = re.sub(r"\s+", " ", user_query.strip().lower())
+            is_identity_query = normalized_query in {
+                "who are you",
+                "who are you?",
+                "what are you",
+                "what are you?",
+            }
+
+            if is_identity_query:
+                full_response = (
+                    "I am MediChat, an AI-powered medical assistant designed to provide "
+                    "informational guidance from curated medical literature. I do not "
+                    "replace professional medical advice, diagnosis, or treatment."
+                )
+                st.markdown(full_response, unsafe_allow_html=False)
+                current_chat["messages"].append({
+                    "role": "assistant",
+                    "content": full_response,
+                    "confidence": "high",
+                })
+                _persist_chats_if_authenticated()
+                st.rerun()
+                return
+
             with st.spinner("Thinking..."):
                 # Pass full history up to (but excluding) the assistant's new turn
                 result = call_rag_pipeline(user_query, current_chat["messages"][:-1])
 
             if "error" in result:
-                err_msg = f"⚠️ **Error:** {result['error']}"
+                err_msg = f"**Error:** {result['error']}"
                 st.error(err_msg)
                 current_chat["messages"].append({"role": "assistant", "content": err_msg})
+                _persist_chats_if_authenticated()
             else:
                 ans = result.get("answer", "No response.")
                 conf = result.get("confidence", "low")
@@ -1477,14 +1949,14 @@ def handle_input():
                     time.sleep(0.005)
                 message_placeholder.markdown(full_response, unsafe_allow_html=False)
 
-                # Show a small confidence badge so users know how reliable the answer is.
-                _render_confidence_badge(conf)
-
                 # Save to state
                 current_chat["messages"].append({
                     "role": "assistant",
                     "content": full_response,
+                    "confidence": conf,
                 })
+                _persist_chats_if_authenticated()
+                st.rerun()
 
 
 # ── The Main Event ──
@@ -1504,26 +1976,74 @@ def main():
         render_consent_page()
         return
 
+    if st.session_state.pop("consent_transitioning", False):
+        st.markdown(
+            "<style>"
+            ".consent-shell,"
+            ".st-key-consent_checkbox_full,"
+            ".st-key-consent_continue_btn{display:none !important;}"
+            "</style>",
+            unsafe_allow_html=True,
+        )
+        st.empty()
+        time.sleep(0.08)
+        st.rerun()
+
     # ── Full chatbot (authenticated + consented) ──────────────────────────────
     st.markdown("""
     <script>
-    (function fixCaret() {
-        function setHeight() {
-            const ta = document.querySelector('textarea[data-testid="stChatInputTextArea"]');
-            if (ta) {
-                ta.style.setProperty('height', '24px', 'important');
-                ta.style.setProperty('min-height', '24px', 'important');
-                ta.style.setProperty('font-size', '19px', 'important');
-                ta.style.setProperty('line-height', '1.3', 'important');
-                ta.style.setProperty('padding-top', '3px', 'important');
-            } else {
-                setTimeout(setHeight, 80);
-            }
+    (function lockChatInput() {
+        var FIXED_PX = 24;
+        var FIXED_H  = FIXED_PX + 'px';
+
+        function applyLock(ta) {
+            /* 1. Spoof scrollHeight so Streamlit's own auto-resize always reads 24 */
+            try {
+                Object.defineProperty(ta, 'scrollHeight', {
+                    get: function() { return FIXED_PX; },
+                    configurable: true
+                });
+            } catch(e) {}
+
+            /* 2. Force inline styles (beats CSS and Streamlit's resize handler) */
+            ta.style.setProperty('height',        FIXED_H,  'important');
+            ta.style.setProperty('min-height',    FIXED_H,  'important');
+            ta.style.setProperty('max-height',    FIXED_H,  'important');
+            ta.style.setProperty('overflow-y',    'hidden', 'important');
+            ta.style.setProperty('overflow-x',    'hidden', 'important');
+            ta.style.setProperty('resize',        'none',   'important');
+            ta.style.setProperty('white-space',   'nowrap', 'important');
+            ta.style.setProperty('overflow-wrap', 'normal', 'important');
+            ta.style.setProperty('word-break',    'normal', 'important');
+            ta.style.setProperty('font-size',     '19px',   'important');
+            ta.style.setProperty('line-height',   '1.3',    'important');
+            ta.style.setProperty('padding-top',   '3px',    'important');
         }
+
+        function init() {
+            var ta = document.querySelector('textarea[data-testid="stChatInputTextArea"]');
+            if (!ta) { setTimeout(init, 80); return; }
+
+            applyLock(ta);
+
+            /* 3. Re-lock after every keystroke (input fires AFTER Streamlit's resize) */
+            ta.addEventListener('input', function() { applyLock(ta); }, true);
+
+            /* 4. MutationObserver with guard flag to prevent infinite loop */
+            var busy = false;
+            var obs = new MutationObserver(function() {
+                if (busy) return;
+                busy = true;
+                applyLock(ta);
+                busy = false;
+            });
+            obs.observe(ta, { attributes: true, attributeFilter: ['style'] });
+        }
+
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setHeight);
+            document.addEventListener('DOMContentLoaded', init);
         } else {
-            setHeight();
+            init();
         }
     })();
     </script>
@@ -1558,6 +2078,9 @@ def main():
 
     <script>
     (function collapsedStrip() {
+        if (window.__medichatSidebarEnhancerLoaded) return;
+        window.__medichatSidebarEnhancerLoaded = true;
+
         // Open sidebar: try every known Streamlit expand button selector
         function openSidebar() {
             var btn =
@@ -1616,61 +2139,124 @@ def main():
         }
 
         function injectSearchClear() {
-            var searchInput = document.querySelector('[data-testid="stSidebar"] .stTextInput input');
+            var sidebar = document.querySelector('[data-testid="stSidebar"]');
+            if (!sidebar) return;
+
+            // If custom component exists, it already owns clear behavior.
+            var customSearch = sidebar.querySelector('#mc-input');
+            if (customSearch) return;
+
+            var searchInput = sidebar.querySelector('.stTextInput input');
             if (!searchInput) return;
-            
+
             var container = searchInput.closest('[data-testid="stTextInput"]') || searchInput.parentElement;
-            
-            var existingBtn = container.querySelector('.search-clear');
-            if (existingBtn) {
-                existingBtn.style.display = searchInput.value.length > 0 ? 'flex' : 'none';
-                return;
+            if (!container) return;
+
+            var clearBtn = container.querySelector('.search-clear');
+            if (!clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
+                clearBtn.className = 'search-clear';
+                clearBtn.setAttribute('aria-label', 'Clear search');
+                clearBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>';
+                container.appendChild(clearBtn);
+
+                Object.assign(clearBtn.style, {
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '22px',
+                    height: '22px',
+                    border: 'none',
+                    borderRadius: '999px',
+                    background: 'rgba(255,255,255,0.12)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    opacity: '0',
+                    pointerEvents: 'none',
+                    zIndex: '20',
+                    transition: 'opacity 0.12s ease, background 0.12s ease'
+                });
+
+                var icon = clearBtn.querySelector('svg');
+                if (icon) {
+                    icon.style.width = '12px';
+                    icon.style.height = '12px';
+                    icon.style.stroke = 'currentColor';
+                    icon.style.strokeWidth = '2.2';
+                    icon.style.fill = 'none';
+                    icon.style.strokeLinecap = 'round';
+                }
+
+                clearBtn.addEventListener('mouseenter', function() {
+                    clearBtn.style.background = 'rgba(255,255,255,0.22)';
+                    clearBtn.style.color = '#ffffff';
+                });
+                clearBtn.addEventListener('mouseleave', function() {
+                    clearBtn.style.background = 'rgba(255,255,255,0.12)';
+                    clearBtn.style.color = '#ffffff';
+                });
+
+                clearBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                    setter.call(searchInput, '');
+                    searchInput.__mcLastSent = '';
+                    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    searchInput.focus();
+                });
             }
-            
-            var clearBtn = document.createElement('div');
-            clearBtn.className = 'search-clear';
-            clearBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>';
-            
-            Object.assign(clearBtn.style, {
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                cursor: 'pointer',
-                color: '#ffffff', // pure white for max visibility
-                width: '16px',
-                height: '16px',
-                display: searchInput.value.length > 0 ? 'flex' : 'none',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: '999999', // force it on top of the input's solid background!
-                pointerEvents: 'all'
-            });
-            
+
             container.style.position = 'relative';
-            if (container.parentElement) { container.parentElement.style.overflow = 'visible'; container.parentElement.style.clipPath = 'none'; }
-            container.appendChild(clearBtn);
-            container.style.overflow = 'visible';
-            container.style.clipPath = 'none';
-            
-            // Push input's z-index down so it doesn't cover the absolute button
+            searchInput.style.paddingRight = '38px';
             searchInput.style.position = 'relative';
             searchInput.style.zIndex = '1';
-            
-            searchInput.addEventListener('input', function() {
-                clearBtn.style.display = this.value.length > 0 ? 'flex' : 'none';
-            });
-            
-            clearBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-                nativeInputValueSetter.call(searchInput, '');
-                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-                searchInput.dispatchEvent(new Event('change', { bubbles: true }));
-                clearBtn.style.display = 'none';
-                searchInput.focus();
-            });
+
+            var syncClearVisibility = function() {
+                var hasValue = !!(searchInput.value && searchInput.value.length);
+                clearBtn.style.opacity = hasValue ? '1' : '0';
+                clearBtn.style.pointerEvents = hasValue ? 'auto' : 'none';
+            };
+
+            if (!searchInput.dataset.mcRealtimeBound) {
+                searchInput.__mcLastSent = searchInput.value || '';
+                searchInput.__mcRealtimeTimer = null;
+
+                searchInput.addEventListener('input', function() {
+                    syncClearVisibility();
+                    if (searchInput.__mcRealtimeTimer) clearTimeout(searchInput.__mcRealtimeTimer);
+                    searchInput.__mcRealtimeTimer = setTimeout(function() {
+                        var nextValue = searchInput.value || '';
+                        if (nextValue !== searchInput.__mcLastSent) {
+                            searchInput.__mcLastSent = nextValue;
+                            searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }, 120);
+                });
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') e.preventDefault();
+                });
+                searchInput.addEventListener('blur', function() {
+                    if (searchInput.__mcRealtimeTimer) {
+                        clearTimeout(searchInput.__mcRealtimeTimer);
+                        searchInput.__mcRealtimeTimer = null;
+                    }
+                    var nextValue = searchInput.value || '';
+                    if (nextValue !== searchInput.__mcLastSent) {
+                        searchInput.__mcLastSent = nextValue;
+                        searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+                searchInput.dataset.mcRealtimeBound = '1';
+            }
+
+            syncClearVisibility();
         }
 
         function fixSidebarFooter() {
@@ -1732,30 +2318,42 @@ def main():
             });
         }
 
-        // Poll every 300ms — handles sidebar strip + cleanup + search clear + footer positioning + chevron kill
-        setInterval(function() {
+        function runSidebarEnhancements() {
             try { syncStrip(); } catch(e){}
             try { cleanupLegacyStyles(); } catch(e){}
             try { injectSearchClear(); } catch(e){}
-            try { fixSidebarFooter(); } catch(e){}
             try { killChevrons(); } catch(e){}
-        }, 300);
+        }
+
+        runSidebarEnhancements();
+
+        var footerAttempts = 0;
+        var footerFixTimer = setInterval(function() {
+            footerAttempts += 1;
+            try { fixSidebarFooter(); } catch(e){}
+            if (footerAttempts >= 20) clearInterval(footerFixTimer);
+        }, 120);
+
+        // Fast bootstrap so clear button/search behavior is ready before first typing.
+        var searchBootAttempts = 0;
+        var searchBootTimer = setInterval(function() {
+            searchBootAttempts += 1;
+            try { injectSearchClear(); } catch(e){}
+            if (searchBootAttempts >= 25) clearInterval(searchBootTimer);
+        }, 100);
+
+        // Lightweight maintenance loop
+        setInterval(runSidebarEnhancements, 900);
 
         // Also fire immediately once DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                syncStrip();
-                cleanupLegacyStyles();
-                injectSearchClear();
-                fixSidebarFooter();
+                runSidebarEnhancements();
+                try { fixSidebarFooter(); } catch(e){}
             });
         } else {
-            setTimeout(function() {
-                syncStrip();
-                cleanupLegacyStyles();
-                injectSearchClear();
-                fixSidebarFooter();
-            }, 400);
+            runSidebarEnhancements();
+            try { fixSidebarFooter(); } catch(e){}
         }
     })();
     </script>
@@ -1764,7 +2362,7 @@ def main():
     # Persistent disclaimer — always visible, compliant with ACS/ACM ethics requirements.
     st.markdown("""
     <div class="sticky-disclaimer">
-        ⚠️ Not medical advice &mdash; always consult a qualified healthcare professional.
+        Not medical advice &mdash; always consult a qualified healthcare professional.
     </div>
     """, unsafe_allow_html=True)
 

@@ -16,3 +16,4 @@ httpx
 bert-score
 rouge-score
 pytest
+scikit-learn

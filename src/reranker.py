@@ -1,56 +1,37 @@
-"""
-reranker.py  –  Second-stage semantic reranking for the Clinical RAG pipeline.
+"""Second-stage semantic reranking for the clinical RAG pipeline.
 
-Problem
--------
-FAISS retrieval is purely embedding-based (cosine similarity of dense vectors).
-That can return chunks that are *topically adjacent* but do not actually contain
-the clinical terms the user asked about.  For example, a query about "diabetes
-symptoms" might surface chunks about "insulin dosage" (high cosine similarity)
-even though the word "diabetes" does not appear in those chunks.
-
-Solution
---------
-After FAISS retrieval this module applies a lightweight, two-signal reranker:
-
-    final_score = w_kw * keyword_overlap_score
-                + w_sim * faiss_similarity_score   ← (if available; else 0)
-
-Keyword overlap is computed dynamically from the query itself – no disease name
-is ever hardcoded.  Stop-words and very short tokens are stripped so only
-clinically meaningful terms contribute.
-
-Public API
-----------
-    from src.reranker import rerank_docs
-
-    reranked = rerank_docs(docs, query)
-    # Returns a list of scored Document objects, best first.
-    # Chunks that score below MIN_SCORE are removed unless doing so would
-    # leave an empty list (in that case the single best-scoring chunk is kept
-    # so the LLM always has *some* context to reason about).
+This module keeps the same public API (`rerank_docs`) while removing
+query-template and symptom-list heuristics. Ranking is now data-driven:
+1) semantic similarity to the query,
+2) generic medical relevance density in each chunk,
+3) coverage of multiple query facets.
 """
 
 from __future__ import annotations
 
-import re
 import math
+import re
 from typing import NamedTuple
 
-from src.config import RERANK_MIN_SCORE, RERANK_TOP_N
+from src.config import (
+    RERANK_FACET_SIM_THRESHOLD,
+    RERANK_MIN_CHUNKS,
+    RERANK_MIN_SCORE,
+    RERANK_TOP_N,
+    RERANK_WEIGHT_FACET_COVERAGE,
+    RERANK_WEIGHT_MEDICAL_RELEVANCE,
+    RERANK_WEIGHT_SEMANTIC,
+)
 from src.logger import get_logger
 
 log = get_logger(__name__)
 
-# ---------------------------------------------------------------------------
-# Medical stop-words  (extend freely – nothing disease-specific here)
-# ---------------------------------------------------------------------------
+_EMBED_MODEL = None
+_EMBED_CACHE: dict[str, list[float]] = {}
 
-# Generic English stop-words plus common clinical filler terms that carry
-# very little discriminating power.  Kept as a frozenset for O(1) lookup.
+# Generic stop words for token cleanup (not disease-specific).
 _STOP_WORDS: frozenset[str] = frozenset(
     {
-        # English function words
         "a", "an", "the", "and", "or", "but", "if", "in", "on", "at", "to",
         "of", "for", "with", "by", "from", "as", "is", "was", "are", "were",
         "be", "been", "being", "have", "has", "had", "do", "does", "did",
@@ -62,283 +43,181 @@ _STOP_WORDS: frozenset[str] = frozenset(
         "about", "above", "after", "before", "between", "during", "through",
         "without", "within", "along", "following", "across", "behind",
         "beyond", "plus", "except", "up", "out", "around", "down", "off",
-        "over", "then", "once",
-        # Clinical filler words
-        "patient", "patients", "doctor", "doctors", "medical", "medicine",
-        "health", "healthy", "clinic", "clinical", "please", "dear", "sir",
-        "madam", "hello", "hi", "thanks", "thank", "help", "know", "want",
-        "need", "feel", "feels", "feeling", "also", "just", "like", "well",
-        "good", "bad", "new", "old", "many", "much", "more", "most", "some",
-        "any", "all", "other", "such", "even", "only", "still", "already",
-        "since", "due", "per", "eg", "ie",
+        "over", "then", "once", "please", "hello", "hi", "thanks",
     }
 )
+_MIN_TOKEN_LEN = 3
 
-# Minimum token length to be considered a keyword.
-_MIN_TOKEN_LEN: int = 3
+# Generic phrase cues used to split multi-facet symptom/cause queries.
+_FACET_SPLIT_PATTERN = re.compile(r",|;|\band\b|\bwith\b|\bplus\b", re.IGNORECASE)
 
+# Generic medical morphology and units (dataset-agnostic, no disease names).
+_MEDICAL_AFFIX_PATTERN = re.compile(
+    r"(itis|emia|osis|opathy|algia|genic|scopy|ectomy|plasty|oma|uria|pnea|rrhea|pathy)$",
+    re.IGNORECASE,
+)
+_CLINICAL_UNIT_PATTERN = re.compile(r"\b(\d+(\.\d+)?\s*(mg|mcg|ml|mmhg|bpm|kg|cm|mmol|iu))\b", re.IGNORECASE)
 
-# ---------------------------------------------------------------------------
-# Data structures
-# ---------------------------------------------------------------------------
 
 class ScoredDoc(NamedTuple):
     """A retrieved document paired with its reranking score."""
-    doc: object          # LangChain Document
-    score: float         # composite rerank score ∈ [0.0, 1.0]
-    keyword_score: float # keyword-overlap component
-    sim_score: float     # embedding-similarity component (may be 0.0)
+
+    doc: object
+    score: float
+    semantic_score: float
+    medical_relevance: float
+    facet_coverage: float
 
 
-# ---------------------------------------------------------------------------
-# Keyword extraction
-# ---------------------------------------------------------------------------
+def _get_embedding_model():
+    global _EMBED_MODEL
+    if _EMBED_MODEL is None:
+        from src.embedder import get_embedding_model
+
+        _EMBED_MODEL = get_embedding_model()
+    return _EMBED_MODEL
+
+
+def _embed(text: str) -> list[float]:
+    key = (text or "").strip().lower()
+    if key in _EMBED_CACHE:
+        return _EMBED_CACHE[key]
+    emb = _get_embedding_model().embed_query(text or "")
+    _EMBED_CACHE[key] = emb
+    return emb
+
+
+def _cosine(vec1: list[float], vec2: list[float]) -> float:
+    dot = sum(a * b for a, b in zip(vec1, vec2))
+    norm1 = math.sqrt(sum(a * a for a in vec1))
+    norm2 = math.sqrt(sum(b * b for b in vec2))
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return dot / (norm1 * norm2)
+
 
 def extract_keywords(query: str) -> list[str]:
-    """Extract clinically meaningful tokens from *query* dynamically.
-
-    Strategy
-    --------
-    1. Lowercase and tokenise on non-alphanumeric boundaries.
-    2. Remove stop-words and very short tokens.
-    3. Deduplicate while preserving original order (first occurrence wins).
-
-    This approach is deliberately disease-agnostic: it extracts whatever
-    content words appear in the query, so it generalises to any medical topic.
-
-    Args:
-        query: Raw user query string.
-
-    Returns:
-        Ordered list of unique keyword strings (may be empty).
-
-    Examples:
-        >>> extract_keywords("What are the symptoms of Type 2 Diabetes?")
-        ['what', 'symptoms', 'type', 'diabetes']
-        # Stop-words removed; 'of', 'the', 'are' filtered out.
-    """
-    # Tokenise: split on anything that is not a letter, digit, or hyphen.
-    raw_tokens = re.split(r"[^a-zA-Z0-9\-]+", query.lower())
-
+    """Extract content-bearing tokens from query text."""
+    raw_tokens = re.split(r"[^a-zA-Z0-9\-]+", (query or "").lower())
     seen: set[str] = set()
     keywords: list[str] = []
     for tok in raw_tokens:
-        tok = tok.strip("-")  # strip leading/trailing hyphens
-        if (
-            len(tok) >= _MIN_TOKEN_LEN
-            and tok not in _STOP_WORDS
-            and tok not in seen
-        ):
+        tok = tok.strip("-")
+        if len(tok) >= _MIN_TOKEN_LEN and tok not in _STOP_WORDS and tok not in seen:
             seen.add(tok)
             keywords.append(tok)
-
-    log.debug("Extracted keywords from query: %s", keywords)
     return keywords
 
 
-# ---------------------------------------------------------------------------
-# Scoring
-# ---------------------------------------------------------------------------
+def _extract_query_facets(query: str) -> list[str]:
+    """Extract independent query facets for multi-symptom/multi-clause coverage."""
+    clauses = [c.strip() for c in _FACET_SPLIT_PATTERN.split(query or "") if c.strip()]
+    facets: list[str] = []
+    for clause in clauses:
+        kws = extract_keywords(clause)
+        if kws:
+            facets.append(" ".join(kws[:8]))
+    # Deduplicate preserving order.
+    return list(dict.fromkeys(facets))
 
-def _keyword_overlap_score(text: str, keywords: list[str]) -> float:
-    """Compute normalised keyword-overlap score for *text*.
 
-    Score = (number of distinct query keywords present in text) / len(keywords)
-
-    Presence is checked as a case-insensitive whole-word match so that
-    "hyperglycemia" in the text does not accidentally match keyword "glyc".
-
-    Args:
-        text:     Chunk text (page_content).
-        keywords: Keywords extracted from the query.
-
-    Returns:
-        Float in [0.0, 1.0].  Returns 0.0 if keywords is empty.
-    """
-    if not keywords:
+def _medical_relevance_density(text: str) -> float:
+    """Score how clinically substantive a chunk is without disease-specific dictionaries."""
+    tokens = re.findall(r"[a-zA-Z][a-zA-Z0-9\-]+", (text or "").lower())
+    if not tokens:
         return 0.0
 
-    lowered = text.lower()
-    hits = 0
-    for kw in keywords:
-        # Whole-word boundary match to avoid false substring hits.
-        pattern = r"\b" + re.escape(kw) + r"\b"
-        if re.search(pattern, lowered):
-            hits += 1
-
-    return hits / len(keywords)
+    affix_hits = sum(1 for t in tokens if _MEDICAL_AFFIX_PATTERN.search(t))
+    unit_hits = len(_CLINICAL_UNIT_PATTERN.findall(text or ""))
+    long_term_hits = sum(1 for t in tokens if len(t) >= 9)
+    ratio = (affix_hits + unit_hits + long_term_hits * 0.2) / max(len(tokens), 1)
+    return max(0.0, min(1.0, ratio * 6.0))
 
 
-def _extract_faiss_sim_score(doc) -> float:
-    """Try to read a FAISS similarity score stored in document metadata.
-
-    LangChain's ``similarity_search_with_score`` stores the L2 distance in
-    metadata under the key 'score' or 'similarity_score' (depending on the
-    wrapper version).  Plain ``similarity_search`` does *not* attach a score.
-
-    If no score is found we return 0.0 so the keyword component drives ranking.
-
-    Args:
-        doc: LangChain Document object.
-
-    Returns:
-        Float in [0.0, 1.0].  Lower FAISS L2 distance → higher return value.
-    """
-    meta = getattr(doc, "metadata", {}) or {}
-
-    # Some wrappers attach the raw cosine similarity directly.
-    for key in ("similarity_score", "score", "relevance_score"):
-        raw = meta.get(key)
-        if raw is not None:
-            try:
-                val = float(raw)
-                # If it looks like an L2 distance (>1), convert to similarity.
-                if val > 1.0:
-                    # Heuristic: map L2 distance to (0, 1] via exp(-d).
-                    val = math.exp(-val)
-                return max(0.0, min(1.0, val))
-            except (ValueError, TypeError):
-                pass
-
-    return 0.0  # No score attached – keyword component will dominate.
+def _facet_coverage_score(doc_text: str, facet_embeddings: list[list[float]]) -> float:
+    if not facet_embeddings:
+        return 0.0
+    doc_emb = _embed(doc_text)
+    covered = 0
+    for facet_emb in facet_embeddings:
+        if _cosine(doc_emb, facet_emb) >= RERANK_FACET_SIM_THRESHOLD:
+            covered += 1
+    return covered / len(facet_embeddings)
 
 
-def score_doc(doc, keywords: list[str]) -> ScoredDoc:
-    """Compute the composite rerank score for a single *doc*.
+def score_doc(doc, query: str, query_embedding: list[float] | None = None, facet_embeddings: list[list[float]] | None = None) -> ScoredDoc:
+    """Compute composite semantic rerank score for one retrieved chunk."""
+    text = getattr(doc, "page_content", "") or ""
+    if query_embedding is None:
+        query_embedding = _embed(query)
+    if facet_embeddings is None:
+        facets = _extract_query_facets(query)
+        facet_embeddings = [_embed(f) for f in facets if f]
 
-    Composite formula (weights sum to 1.0):
-        final = 0.65 * keyword_overlap  +  0.35 * faiss_similarity
-
-    The keyword component is weighted higher because the FAISS score is often
-    unavailable (plain similarity_search does not attach it), and because
-    keyword overlap is a stronger signal for *specific* clinical queries.
-
-    Args:
-        doc:      LangChain Document object.
-        keywords: Keywords extracted from the query.
-
-    Returns:
-        ScoredDoc named-tuple.
-    """
-    sim_score = _extract_faiss_sim_score(doc)
-
-    lowered_content = doc.page_content.lower()
-    overlap = sum(1 for k in keywords if k in lowered_content)
-    coverage = overlap / (len(keywords) + 1e-5)
-    keyword_score = coverage
-
-    length = len(doc.page_content.split())
-    length_score = min(length / 200, 1.0)
+    doc_embedding = _embed(text)
+    semantic_score = max(0.0, _cosine(query_embedding, doc_embedding))
+    medical_relevance = _medical_relevance_density(text)
+    facet_coverage = _facet_coverage_score(text, facet_embeddings)
 
     final_score = (
-        0.6 * sim_score +
-        0.25 * keyword_score +
-        0.15 * length_score
+        RERANK_WEIGHT_SEMANTIC * semantic_score
+        + RERANK_WEIGHT_MEDICAL_RELEVANCE * medical_relevance
+        + RERANK_WEIGHT_FACET_COVERAGE * facet_coverage
+    )
+    final_score = max(0.0, min(1.0, final_score))
+
+    return ScoredDoc(
+        doc=doc,
+        score=final_score,
+        semantic_score=semantic_score,
+        medical_relevance=medical_relevance,
+        facet_coverage=facet_coverage,
     )
 
-    # Boost based on keyword coverage for multi-symptom queries
-    final_score += 0.1 * coverage
-
-    # Penalize Low-Quality Fragments
-    if length < 40:
-        final_score -= 0.05
-
-    log.debug(
-        "Score  kw=%.3f  sim=%.3f  len=%.3f  final=%.3f  | %.60s …",
-        keyword_score, sim_score, length_score, final_score,
-        doc.page_content.replace("\n", " "),
-    )
-    return ScoredDoc(doc=doc, score=final_score, keyword_score=keyword_score, sim_score=sim_score)
-
-
-# ---------------------------------------------------------------------------
-# Main reranker entry-point
-# ---------------------------------------------------------------------------
 
 def rerank_docs(docs: list, query: str) -> list:
-    """Second-stage reranker: filter and rank *docs* by semantic relevance.
-
-    Pipeline
-    --------
-    1. Extract keywords dynamically from *query*.
-    2. Score every chunk (keyword overlap + FAISS similarity blend).
-    3. Sort descending by composite score.
-    4. Remove chunks below ``RERANK_MIN_SCORE`` threshold.
-    5. Keep at most ``RERANK_TOP_N`` chunks.
-    6. Safety net: if all chunks were filtered out, keep the single
-       highest-scoring chunk so the LLM always receives *some* context.
-
-    The function is fully disease-agnostic – it never references specific
-    conditions.  It works for any healthcare query.
-
-    Args:
-        docs:  Raw list of LangChain Document objects from FAISS retrieval.
-        query: User query string.
-
-    Returns:
-        Filtered, ranked list of Document objects (best first).
-        May be shorter than *docs*.  Never returns an empty list if *docs*
-        was non-empty (safety net ensures at least one chunk survives).
-    """
+    """Filter and rank retrieved documents by semantic and clinical relevance."""
     if not docs:
-        log.warning("Reranker received empty document list – skipping.")
+        log.warning("Reranker received empty document list; skipping.")
         return docs
 
-    # Step 1 – Dynamic keyword extraction
-    keywords = extract_keywords(query)
-    if not keywords:
-        log.warning(
-            "No keywords extracted from query '%s'. "
-            "Skipping keyword filter; returning FAISS order.",
-            query,
+    query_embedding = _embed(query)
+    query_facets = _extract_query_facets(query)
+    facet_embeddings = [_embed(f) for f in query_facets]
+
+    scored = [
+        score_doc(
+            doc,
+            query=query,
+            query_embedding=query_embedding,
+            facet_embeddings=facet_embeddings,
         )
-        return docs[:RERANK_TOP_N] if RERANK_TOP_N > 0 else docs
-
-    log.info("Reranking %d chunks.  Keywords: %s", len(docs), keywords)
-
-    # Step 2 – Score all chunks
-    scored = [score_doc(doc, keywords) for doc in docs]
-
-    # Step 3 – Sort descending by composite score
+        for doc in docs
+    ]
     scored.sort(key=lambda sd: sd.score, reverse=True)
 
-    # Step 4 – Filter by minimum score threshold
     filtered = [sd for sd in scored if sd.score >= RERANK_MIN_SCORE]
-
-    # If all chunks scored below threshold, keep top-N anyway
     if not filtered:
         log.warning(
-            "All %d chunks scored below RERANK_MIN_SCORE=%.2f. "
-            "Keeping top-%d chunks anyway as a safety net.",
+            "All %d chunks were below score threshold %.2f; applying safety net.",
             len(scored),
             RERANK_MIN_SCORE,
-            RERANK_TOP_N if RERANK_TOP_N > 0 else len(scored)
         )
-        filtered = scored[:RERANK_TOP_N] if RERANK_TOP_N > 0 else scored
+        filtered = scored[: max(RERANK_MIN_CHUNKS, 1)]
 
-    # Guarantee minimum context: NEVER return < 2 documents if available
-    min_docs = min(2, len(scored))
+    min_docs = min(max(RERANK_MIN_CHUNKS, 1), len(scored))
     if len(filtered) < min_docs:
-        log.warning(
-            "Reranker filtered down to %d chunks, but we enforce a minimum of %d. "
-            "Adding chunks back to meet the minimum.",
-            len(filtered),
-            min_docs
-        )
         filtered = scored[:min_docs]
 
-    # Step 5 – Cap at RERANK_TOP_N
     if RERANK_TOP_N > 0:
         filtered = filtered[:RERANK_TOP_N]
 
     log.info(
-        "Reranker: %d -> %d chunk(s) after filtering "
-        "(min_score=%.2f, top_n=%d).",
+        "Reranker: %d -> %d chunks (threshold=%.2f, top_n=%d).",
         len(docs),
         len(filtered),
         RERANK_MIN_SCORE,
         RERANK_TOP_N,
     )
-
-    # Return plain Document objects (strip the ScoredDoc wrapper)
     return [sd.doc for sd in filtered]
+

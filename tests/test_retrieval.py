@@ -26,7 +26,7 @@ def mock_documents():
 
 def test_build_vector_store(mock_documents):
     """Test that FAISS vector store can be built from documents."""
-    vector_store = build_vector_store(mock_documents)
+    vector_store = build_vector_store(mock_documents, save=False)
     assert vector_store is not None
     # Assuming chunk size is large enough to not split these short documents
     # and FAISS successfully stored them
@@ -38,7 +38,7 @@ def test_build_vector_store(mock_documents):
 
 def test_retriever_top_k_behavior(mock_documents):
     """Test that the configured retriever respects top_k settings."""
-    vector_store = build_vector_store(mock_documents)
+    vector_store = build_vector_store(mock_documents, save=False)
     retriever = get_retriever(vector_store)
     
     # Temporarily modify top_k in retriever

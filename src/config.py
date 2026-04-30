@@ -7,7 +7,10 @@ to deploy in different environments.
 """
 
 import os
+import platform
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
+
 from dotenv import load_dotenv
 
 # Locate the project root (two levels up from this file: src/config.py → root)
@@ -20,7 +23,36 @@ load_dotenv(PROJECT_ROOT / ".env")
 # ── The Models (Ollama & Embeddings) ──
 # We use Ollama for our LLM and a local SentenceTransformer for embeddings.
 OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+def _normalize_ollama_base_url(url: str) -> str:
+    """
+    Normalize Ollama base URL for common local-dev pitfalls.
+
+    On Windows, "localhost" may resolve to IPv6 (::1) first while Ollama is
+    bound only to IPv4 (127.0.0.1), causing WinError 10061 connection refused.
+    """
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            return url
+
+        # Only rewrite host on Windows and only for explicit localhost.
+        if platform.system().lower() == "windows":
+            host = parsed.hostname or ""
+            if host.lower() == "localhost":
+                port = f":{parsed.port}" if parsed.port else ""
+                new_netloc = f"127.0.0.1{port}"
+                return urlunparse(parsed._replace(netloc=new_netloc))
+
+        return url
+    except Exception:
+        # Best-effort: never fail import-time config for a "nice to have".
+        return url
+
+
+OLLAMA_BASE_URL: str = _normalize_ollama_base_url(
+    os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+)
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
 # ── Data Storage (Vector Store & Raw Data) ──
@@ -43,7 +75,7 @@ MAX_RETRIES: int          = int(float(os.getenv("MAX_RETRIES",          "3")))
 RETRY_DELAY_SECONDS: float = float(os.getenv("RETRY_DELAY_SECONDS", "5"))
 
 # ── Retrieval ─────────────────────────────────────────────────────────────────
-TOP_K_RESULTS: int = int(os.getenv("TOP_K_RESULTS", "15"))
+TOP_K_RESULTS: int = int(os.getenv("TOP_K_RESULTS", "25"))
 
 # ── Second-stage Reranker ─────────────────────────────────────────────────────
 # Minimum composite score (keyword overlap + similarity blend) a chunk must
@@ -56,7 +88,18 @@ RERANK_MIN_SCORE: float = float(os.getenv("RERANK_MIN_SCORE", "0.15"))
 # Maximum number of chunks to pass to the LLM after reranking.
 # Acts as an additional cap on top of MAX_CONTEXT_CHARS.
 # 0 = no cap (all chunks that pass the score threshold are forwarded).
-RERANK_TOP_N: int = int(os.getenv("RERANK_TOP_N", "4"))
+RERANK_TOP_N: int = int(os.getenv("RERANK_TOP_N", "6"))
+
+# Data-driven reranker weights (must sum approximately to 1.0).
+RERANK_WEIGHT_SEMANTIC: float = float(os.getenv("RERANK_WEIGHT_SEMANTIC", "0.65"))
+RERANK_WEIGHT_MEDICAL_RELEVANCE: float = float(os.getenv("RERANK_WEIGHT_MEDICAL_RELEVANCE", "0.20"))
+RERANK_WEIGHT_FACET_COVERAGE: float = float(os.getenv("RERANK_WEIGHT_FACET_COVERAGE", "0.15"))
+
+# Minimum semantic similarity for a query facet to be considered covered by a chunk.
+RERANK_FACET_SIM_THRESHOLD: float = float(os.getenv("RERANK_FACET_SIM_THRESHOLD", "0.40"))
+
+# Safety-net minimum reranked chunks retained when available.
+RERANK_MIN_CHUNKS: int = int(os.getenv("RERANK_MIN_CHUNKS", "2"))
 
 # ── RAG chain robustness ───────────────────────────────────────────────────────
 # Maximum total characters of retrieved context sent to the LLM.
@@ -73,6 +116,26 @@ FALLBACK_TOP_K_MIN: int    = int(os.getenv("FALLBACK_TOP_K_MIN",    "2"))
 
 # Seconds before an Ollama request is considered timed out.
 LLM_TIMEOUT_SECONDS: int = int(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
+# Lower temperature improves response consistency for evaluation and safer phrasing.
+LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.2"))
+
+# Intent detection and confidence calibration.
+RAG_INTENT_CONFIDENCE_THRESHOLD: float = float(os.getenv("RAG_INTENT_CONFIDENCE_THRESHOLD", "0.28"))
+RAG_QUERY_TERM_SIM_THRESHOLD: float = float(os.getenv("RAG_QUERY_TERM_SIM_THRESHOLD", "0.82"))
+
+# ── Pronoun Resolution & Topic Shift ─────────────────────────────────────────
+# Maximum word count for a query to be eligible for pronoun resolution.
+# Short queries like "symptoms of it?" trigger resolution; longer ones are
+# assumed to be self-contained.
+PRONOUN_RESOLUTION_MAX_WORDS: int = int(os.getenv("PRONOUN_RESOLUTION_MAX_WORDS", "8"))
+
+# Cosine similarity below which a new question is treated as a topic shift,
+# causing the LLM prompt to receive a clean history (no prior turns).
+TOPIC_SHIFT_SIM_THRESHOLD: float = float(os.getenv("TOPIC_SHIFT_SIM_THRESHOLD", "0.35"))
+
+# Token-overlap ratio above which the first sentence of an LLM answer is
+# flagged as a leaked doc fragment and stripped from the output.
+ANSWER_PREFIX_OVERLAP_THRESHOLD: float = float(os.getenv("ANSWER_PREFIX_OVERLAP_THRESHOLD", "0.60"))
 
 
 # ── App UI ────────────────────────────────────────────────────────────────────

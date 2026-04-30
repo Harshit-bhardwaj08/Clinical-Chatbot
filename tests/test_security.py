@@ -149,6 +149,72 @@ def test_grounded_bullet_is_preserved():
     assert "chest pain" in clean.lower()
 
 
+def test_query_topic_must_be_supported_by_context():
+    """Model-memory answers must be stripped when the topic is absent."""
+    from src.rag_chain import _validate_grounding
+
+    docs = [
+        Document(
+            page_content=(
+                "Flu symptoms include fever, chills, muscle aches, cough, "
+                "runny nose, headache, and fatigue."
+            )
+        )
+    ]
+
+    raw_answer = (
+        "Typhoid fever is a bacterial infection caused by Salmonella typhi, "
+        "spread through contaminated food and water."
+    )
+
+    clean, removals = _validate_grounding(raw_answer, docs, question="what is typhoid?")
+
+    assert "salmonella" not in clean.lower()
+    assert "not have enough reliable information in the provided context" in clean.lower()
+    assert removals >= 1
+
+
+def test_typo_topic_is_normalized_for_context_support():
+    """Misspelled condition terms should still match supported context."""
+    from src.rag_chain import _context_supports_topic
+
+    docs = [
+        Document(
+            page_content=(
+                "Diabetes is a chronic metabolic disorder characterized by high blood sugar levels."
+            )
+        )
+    ]
+
+    with patch("src.rag_chain._build_topic_term_vocab", return_value={"diabetes", "typhoid"}):
+        assert _context_supports_topic(docs, "what is daibetes?")
+
+
+def test_typo_query_can_pass_grounding_when_context_matches():
+    """Grounding should not reject valid content due misspelling in query."""
+    from src.rag_chain import _validate_grounding
+
+    docs = [
+        Document(
+            page_content=(
+                "Diabetes is a group of metabolic disorders characterized by high blood sugar."
+            )
+        )
+    ]
+    raw_answer = "Diabetes is a group of metabolic disorders characterized by high blood sugar."
+
+    with patch("src.rag_chain._build_topic_term_vocab", return_value={"diabetes", "typhoid"}):
+        clean, removals = _validate_grounding(
+            raw_answer,
+            docs,
+            question="what is daibetes?",
+            context_query="what is daibetes?",
+        )
+
+    assert "not have enough reliable information in the provided context" not in clean.lower()
+    assert "diabetes is a group of metabolic disorders" in clean.lower()
+    assert removals == 0
+
 # ── 4. Context budget enforcement ─────────────────────────────────────────────
 
 def test_context_budget_drops_longest_chunk():

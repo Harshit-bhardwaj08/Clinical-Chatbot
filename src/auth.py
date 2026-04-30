@@ -10,8 +10,12 @@ update this later by editing the JSON file directly.
 """
 
 import hashlib
+import hmac
 import json
+import os
 import secrets
+import time
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 from pathlib import Path
 
 from src.logger import get_logger
@@ -21,6 +25,8 @@ log = get_logger(__name__)
 # ── Constants ─────────────────────────────────────────────────────────────────
 _USERS_FILE = Path(__file__).resolve().parent.parent / "users.json"
 _PBKDF2_ITERATIONS = 200_000   # NIST SP 800-132 recommendation
+_SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 24 * 7)))
+_SESSION_SECRET = os.getenv("SESSION_SECRET", "medichat-dev-secret-change-this")
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -70,6 +76,17 @@ def _load_users() -> dict:
 def _save_users(users: dict) -> None:
     """Persist the users dict to users.json."""
     _USERS_FILE.write_text(json.dumps(users, indent=2), encoding="utf-8")
+
+
+def _b64_encode(raw: str) -> str:
+    """Encode text for URL-safe token transport."""
+    return urlsafe_b64encode(raw.encode("utf-8")).decode("utf-8").rstrip("=")
+
+
+def _b64_decode(raw: str) -> str:
+    """Decode URL-safe base64 text."""
+    padded = raw + "=" * (-len(raw) % 4)
+    return urlsafe_b64decode(padded.encode("utf-8")).decode("utf-8")
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -127,3 +144,63 @@ def add_user(username: str, password: str, display_name: str = "", role: str = "
     }
     _save_users(users)
     log.info("User '%s' saved to users.json.", username)
+
+
+def get_user_record(username: str) -> dict:
+    """Return a sanitized user record for *username*, or {} if absent."""
+    users = _load_users()
+    key = username.strip().lower()
+    user = users.get(key)
+    if not user:
+        return {}
+
+    return {
+        "username": key,
+        "display_name": user.get("display_name", key),
+        "role": user.get("role", "user"),
+    }
+
+
+def create_session_token(username: str, consent_given: bool) -> str:
+    """Create a signed, expiring session token for refresh-safe auth."""
+    key = username.strip().lower()
+    expires_at = int(time.time()) + max(60, _SESSION_TTL_SECONDS)
+    consent_flag = "1" if consent_given else "0"
+    nonce = secrets.token_hex(8)
+    payload = f"{key}|{expires_at}|{consent_flag}|{nonce}"
+    payload_b64 = _b64_encode(payload)
+    signature = hmac.new(
+        _SESSION_SECRET.encode("utf-8"),
+        payload_b64.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return f"{payload_b64}.{signature}"
+
+
+def validate_session_token(token: str) -> tuple[bool, dict, bool]:
+    """Validate token and return (is_valid, user_record, consent_given)."""
+    if not token or "." not in token:
+        return False, {}, False
+
+    try:
+        payload_b64, signature = token.split(".", 1)
+        expected_sig = hmac.new(
+            _SESSION_SECRET.encode("utf-8"),
+            payload_b64.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        if not secrets.compare_digest(signature, expected_sig):
+            return False, {}, False
+
+        payload = _b64_decode(payload_b64)
+        username, expires_at, consent_flag, _nonce = payload.split("|", 3)
+        if int(expires_at) < int(time.time()):
+            return False, {}, False
+
+        user_record = get_user_record(username)
+        if not user_record:
+            return False, {}, False
+
+        return True, user_record, consent_flag == "1"
+    except Exception:
+        return False, {}, False
