@@ -1,10 +1,29 @@
 # MediChat: Advanced Clinical RAG Chatbot
 
-MediChat is a production-grade Clinical Retrieval-Augmented Generation (RAG) system designed to provide accurate, grounded, and safe medical information. It leverages local Large Language Models (via Ollama) and a high-performance vector store (FAISS) to process clinical queries with state-of-the-art accuracy.
+## Overview
+MediChat is a production-grade Clinical Retrieval-Augmented Generation (RAG) system designed to provide accurate, grounded, and safe medical information. By leveraging local Large Language Models and high-performance vector stores, it processes clinical queries with state-of-the-art accuracy while maintaining strict data privacy through local execution.
+
+## Technical Stack
+- **Python**: Primary development language.
+- **Streamlit**: Framework used for the interactive web frontend with a premium clinical aesthetic.
+- **FastAPI**: High-performance backend API to handle RAG requests and session management.
+- **LangChain**: Orchestration framework for building and managing the robust RAG pipeline.
+- **FAISS**: Vector database used for ultra-fast and efficient similarity search.
+- **Sentence Transformers**: Used to generate high-quality clinical text embeddings (`all-MiniLM-L6-v2`).
+- **Ollama**: Local model runner providing privacy-focused LLM capabilities (default: `llama3.2:3b`).
+- **Hugging Face Datasets**: Source for clinical knowledge base and benchmark evaluation data.
+- **BERTScore / ROUGE**: Libraries used for rigorous quantitative NLP evaluation of model responses.
+
+## Authentication and Security
+The application implements a multi-layer security protocol to ensure data integrity and user safety:
+- **Secure Login**: Users must authenticate using encrypted credentials.
+- **User Registration**: New accounts are protected with mandatory password verification and hashing.
+- **Medical Consent**: A blocking consent flow requires users to acknowledge the AI's limitations before access.
+- **Granular Access Control**: Chat features are locked behind the authentication and consent layers.
+- **Local Data Isolation**: All session data, credentials, and logs are stored exclusively on the user's infrastructure.
 
 ## Key Features
-
-- **Local Inference**: Powered by Ollama (default: `llama3.2:3b`) for privacy and speed.
+- **Local Inference**: Powered by Ollama for maximum privacy and speed.
 - **Robust RAG Pipeline**:
   - **Dynamic Fallback**: Automatically scales retrieval depth if initial searches are insufficient.
   - **Semantic Diversity**: Filters redundant context to maximize information density.
@@ -13,11 +32,8 @@ MediChat is a production-grade Clinical Retrieval-Augmented Generation (RAG) sys
 - **Context-Aware Conversational Logic**:
   - **Pronoun Resolution**: Resolves ambiguous terms (e.g., "it", "this") based on conversation history.
   - **Topic Shift Detection**: Detects when a user changes subjects to maintain context integrity.
-- **Professional UI**: A premium, Apple-style Streamlit dashboard with:
-  - Secure hashed-password authentication.
-  - Mandatory medical consent workflow.
-  - Persistent chat history and search.
-- **Comprehensive Evaluation**: Built-in tools for measuring accuracy using **BERTScore** and **ROUGE**.
+- **Premium UI/UX**: An Apple-style dashboard with independent scrolling, sticky headers, and responsive layout.
+- **Comprehensive Evaluation**: Automated benchmarking against clinical datasets using BERTScore and ROUGE.
 
 ## How to Run: Full Step-by-Step Guide
 
@@ -44,7 +60,7 @@ cd Clinical-Chatbot
 ```
 
 ### 4. Setup the Project Environment
-In the `medichat` folder, open a terminal and run:
+In the project folder, open a terminal and run:
 1. **Create a workspace**: `python -m venv venv`
 2. **Activate the workspace**:
    - **Windows**: `.\venv\Scripts\activate`
@@ -118,6 +134,21 @@ pytest tests/
 ├── evaluation.py         # RAG accuracy metrics
 └── requirements.txt      # Project dependencies
 ```
+
+## Ethics and Privacy
+- **Data Privacy**: No personal or health-identifiable information is stored or transmitted.
+- **Local Sovereignty**: Model execution happens entirely within the user's infrastructure.
+- **Transparency**: The mandatory consent flow informs users of the AI-driven nature of the project.
+- **Validation**: Input length checks and rate limits are enforced to maintain system integrity.
+
+## Potential Roadmap
+- **Enhanced Datasets**: Incorporating more diverse medical journals and textbooks.
+- **Advanced Metrics**: Adding human evaluation frameworks for better qualitative analysis.
+- **Deployment Scaling**: Providing Docker configurations for enterprise-level hosting.
+- **Advanced Auth**: Support for multi-factor authentication and role-based access.
+
+## Conclusion
+This Clinical RAG Chatbot offers a secure and reliable framework for medical knowledge retrieval. By combining local LLM capabilities with a grounded retrieval pipeline, it demonstrates a practical solution for health-related information management while ensuring data privacy.
 
 ## Medical Disclaimer
 MediChat is an AI research project and is **not** a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
