@@ -77,9 +77,9 @@ You must run the **Backend** and **Frontend** at the same time:
    - Open a **new** terminal window in the same folder.
    - Activate the workspace: `.\venv\Scripts\activate` (or `source venv/bin/activate`).
    - Run the interface:
-     ```bash
-     streamlit run app/streamlit_app.py
-     ```
+   ```bash
+   streamlit run app/streamlit_app.py
+   ```
 
 ### 8. Start Chatting
 Your web browser should automatically open to the MediChat interface.
