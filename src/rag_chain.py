@@ -442,9 +442,9 @@ def _resolve_condition_name(question: str, history: Optional[list[dict]], docs: 
     if not candidates:
         return ""
     
-    # We no longer override q_cond or h_cond with d_cond via substring matching.
-    # d_cond is often a conversational phrase from a document (e.g. "My concern is cancer")
-    # which leads to severe hallucination if it overrides the accurate user topic.
+    primary = q_cond or h_cond
+    if primary and d_cond and primary.lower() in d_cond.lower():
+        return d_cond
 
     for val in [q_cond, h_cond, d_cond]:
         if val:
