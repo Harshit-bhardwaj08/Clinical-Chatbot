@@ -292,7 +292,24 @@ _GREETING_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-_MEDICHAT_GREETING = "Hello, I am MediChat, your medical assistant."
+_MEDICHAT_GREETING = (
+    "Hello, I am MediChat, your medical assistant. I'm here to provide "
+    "clear and professional guidance on various health topics. "
+    "What can I help you with today?"
+)
+
+
+def _is_pure_greeting(text: str) -> bool:
+    """Return True if the text contains ONLY a greeting and optional punctuation."""
+    if not text:
+        return False
+    # Remove common punctuation and whitespace
+    cleaned = re.sub(r"[^a-zA-Z\s]", "", text).strip()
+    if not cleaned:
+        return False
+    # Check if the remaining text exactly matches our greeting pattern
+    pattern = r"(?:hi|hello|hey|hii|hii+|heyy+|good\s+morning|good\s+afternoon|good\s+evening)"
+    return bool(re.fullmatch(pattern, cleaned, re.IGNORECASE))
 
 
 def _is_generic_condition_candidate(text: str) -> bool:
@@ -1714,6 +1731,18 @@ class _RobustRAGChain:
 
     def run(self, question: str, history: list[dict] = None) -> dict:
         """Execute the pipeline with fallback logic."""
+        # Fast-path for simple greetings to ensure stability and speed
+        if _is_pure_greeting(question):
+            log.info("Pure greeting detected. Returning fast-path response.")
+            return {
+                "answer": _MEDICHAT_GREETING,
+                "sources": [],
+                "context_chars": 0,
+                "top_k_used": 0,
+                "confidence": "high",
+                "grounding_removals": 0,
+            }
+
         last_error = None
         for attempt_num, top_k in enumerate(self.top_k_steps, 1):
             retriever = self.vector_store.as_retriever(

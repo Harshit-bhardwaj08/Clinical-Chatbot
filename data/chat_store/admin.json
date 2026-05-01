@@ -9,8 +9,244 @@
       "title": "New Chat",
       "messages": [],
       "timestamp": "2026-05-01 18:37"
+    },
+    "657d942b-12d5-454f-81c3-a4f18c57d3f3": {
+      "title": "hi",
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello, I am MediChat, your medical assistant.\n\nI'm sorry, I encountered an error while processing your request.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-05-01 19:47"
+    },
+    "2cabe7de-2f21-4913-a4d1-9b1c05b55bd8": {
+      "title": "hi",
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello, I am MediChat, your medical assistant.\n\nI'm sorry, I encountered an error while processing your request.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-05-01 19:47"
+    },
+    "f4414027-aeed-45d2-a9d8-37425f93d1cb": {
+      "title": "who are you?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "who are you?"
+        },
+        {
+          "role": "assistant",
+          "content": "I am MediChat, an AI-powered medical assistant designed to provide informational guidance from curated medical literature. I do not replace professional medical advice, diagnosis, or treatment.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-05-01 19:47"
+    },
+    "a2a380ba-bf90-4a7f-9bf6-c03aa9790ec4": {
+      "title": "what is typhoid?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Typhoid fever** is i'm sorry, I encountered an error while processing your request.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-05-01 19:47"
+    },
+    "ef4e15e2-1b89-45ba-8b0c-5cc480063ec3": {
+      "title": "New Chat",
+      "messages": [],
+      "timestamp": "2026-05-01 19:49"
+    },
+    "b28e0769-83ea-4399-b323-c5f4e78923dc": {
+      "title": "what is  typhoid?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is  typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Typhoid fever** is i'm sorry, I encountered an error while processing your request.",
+          "confidence": "high"
+        }
+      ],
+      "timestamp": "2026-05-01 19:49"
+    },
+    "bd9f75c6-a09f-4b54-b6f7-ef325f12f2cb": {
+      "title": "what is typhoid?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Typhoid fever** is a bacterial infection caused by Salmonella Typhi, spread through contaminated food and water. It primarily affects the gastrointestinal tract.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what are the symptoms related to it ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Typhoid** include:\n\n- I do not have enough reliable information in the provided context to answer this question\n\nIf symptoms persist or worsen, seek medical attention.",
+          "confidence": "medium"
+        }
+      ],
+      "timestamp": "2026-05-01 19:52"
+    },
+    "b4225b3f-14f2-4577-8331-0bd4c052e464": {
+      "title": "what is typhoid?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "what is typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Typhoid fever** is a bacterial infection caused by Salmonella Typhi, spread through contaminated food and water. It is typically acquired through the ingestion of food or water contaminated with the bacteria.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what are the symptoms of typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Typhoid fever** include:\n\n- High fever\n- Weakness and fatigue\n- Headache\n- Stomach pain\n- Loss of appetite\n- Nausea and vomiting\n- Abdominal tenderness\n- Rash (in some cases)\n\nIf symptoms persist or worsen, seek medical attention.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what is  the treatment related to typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "Treatment of **Treatment related to typhoid** usually includes doctor-prescribed therapy based on clinical evaluation, test results, and local resistance patterns.\n\n- The recommended antibiotic regimen includes Cefixime and Ofloxacin, with intravenous antibiotics administered first followed by oral antibiotics for the full duration\n\nTreatment should be prescribed by a qualified clinician based on clinical evaluation, tests, and local resistance patterns.",
+          "confidence": "medium"
+        },
+        {
+          "role": "user",
+          "content": "hi"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello, I am MediChat, your medical assistant.\n\n**Typhoid fever** is a bacterial infection caused by Salmonella Typhi, spread through contaminated food and water. It is typically acquired through the ingestion of food or water contaminated with the bacteria.\n\n- Salmonella Typhi\n- spread through contaminated food\n- water",
+          "confidence": "medium"
+        }
+      ],
+      "timestamp": "2026-05-01 20:02"
+    },
+    "7279a7ce-c62e-4008-beb7-f2601772cb71": {
+      "title": "hi",
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello, I am MediChat, your medical assistant.\n\nI'm here to help answer your questions about various medical conditions.",
+          "confidence": "low"
+        },
+        {
+          "role": "user",
+          "content": "whoa areyou ?"
+        },
+        {
+          "role": "assistant",
+          "content": "I do not have enough reliable information in the provided context to answer this question.",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-05-01 20:13"
+    },
+    "8f83aed8-0798-4cb1-bd7a-89d888798c04": {
+      "title": "who are you?",
+      "messages": [
+        {
+          "role": "user",
+          "content": "who are you?"
+        },
+        {
+          "role": "assistant",
+          "content": "I am MediChat, an AI-powered medical assistant designed to provide informational guidance from curated medical literature. I do not replace professional medical advice, diagnosis, or treatment.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "hi"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello, I am MediChat, your medical assistant.\n\nI'm here to provide clear and professional guidance on various health topics. What can I help you with today?",
+          "confidence": "low"
+        }
+      ],
+      "timestamp": "2026-05-01 20:14"
+    },
+    "eb5bcccc-418c-4aae-aed4-ef351927433d": {
+      "title": "hi",
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello, I am MediChat, your medical assistant. I'm here to provide clear and professional guidance on various health topics. What can I help you with today?",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "who are you?"
+        },
+        {
+          "role": "assistant",
+          "content": "I am MediChat, an AI-powered medical assistant designed to provide informational guidance from curated medical literature. I do not replace professional medical advice, diagnosis, or treatment.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what is typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "**Typhoid fever** is a bacterial infection caused by Salmonella Typhi, spread through contaminated food and water.",
+          "confidence": "high"
+        },
+        {
+          "role": "user",
+          "content": "what are the diffeent symptom sof typhoid?"
+        },
+        {
+          "role": "assistant",
+          "content": "Symptoms of **Typhoid fever** include:\n\n- High fever\n- Weakness and fatigue\n- Headache\n- Stomach pain\n- Loss of appetite\n- Nausea and vomiting\n- Abdominal tenderness\n- Rash (in some cases)\n\nIf symptoms persist or worsen, seek medical attention.",
+          "confidence": "medium"
+        }
+      ],
+      "timestamp": "2026-05-01 20:19"
     }
   },
-  "current_chat": "b8835320-869c-401d-87ad-9069a81ab397",
-  "saved_at": "2026-05-01T18:37:27"
+  "current_chat": "eb5bcccc-418c-4aae-aed4-ef351927433d",
+  "saved_at": "2026-05-01T20:19:40"
 }

@@ -1927,6 +1927,27 @@ def handle_input():
                 st.rerun()
                 return
 
+            # Shortcut for simple greetings to avoid backend calls
+            is_greeting_query = re.sub(r"[^a-z\s]", "", normalized_query).strip() in {
+                "hi", "hello", "hey", "hii", "heyy", 
+                "good morning", "good afternoon", "good evening"
+            }
+            if is_greeting_query:
+                full_response = (
+                    "Hello, I am MediChat, your medical assistant. I'm here to provide "
+                    "clear and professional guidance on various health topics. "
+                    "What can I help you with today?"
+                )
+                st.markdown(full_response, unsafe_allow_html=False)
+                current_chat["messages"].append({
+                    "role": "assistant",
+                    "content": full_response,
+                    "confidence": "high",
+                })
+                _persist_chats_if_authenticated()
+                st.rerun()
+                return
+
             with st.spinner("Thinking..."):
                 # Pass full history up to (but excluding) the assistant's new turn
                 result = call_rag_pipeline(user_query, current_chat["messages"][:-1])
