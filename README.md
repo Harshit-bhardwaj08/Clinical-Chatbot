@@ -74,15 +74,18 @@ OLLAMA_MODEL=llama3.2:3b
 DEBUG_MODE=false
 ```
 
-### 6. Prepare the Medical Data (Ingestion)
+### 6. Restart & Refresh (Recommended)
+If you have just finished the environment setup, it is highly recommended to close your current terminal windows and open fresh ones. This ensures that all environment variables and paths are correctly initialized.
+
+### 7. Prepare the Medical Data (Ingestion)
 Before the AI can answer medical questions, it needs to process the clinical knowledge base:
 ```bash
 python main.py --ingest
 ```
 *Note: This may take 2-5 minutes depending on your computer's speed.*
 
-### 7. Start the Chatbot
-You must run the **Backend** and **Frontend** at the same time:
+### 8. Start the Chatbot
+First, ensure you are in the same project folder. You must run the **Backend** and **Frontend** at the same time:
 
 1. **Terminal 1 (Backend)**:
 ```bash
@@ -98,15 +101,15 @@ uvicorn app.api_server:app --port 8000
 streamlit run app/streamlit_app.py
 ```
 
-### 8. Start Chatting
+### 9. Start Chatting
 Your web browser should automatically open to the MediChat interface.
 - **Log In**: Use `admin` (username) and `admin123` (password).
 - **Consent**: Review and accept the medical disclaimer.
 - **Ask**: Try asking "What are the symptoms of appendicitis?"
 
-### 9. Troubleshooting Tips
+### 10. Troubleshooting Tips
 - **Python not found**: Re-install Python and make sure "Add to PATH" is checked.
-- **Connection Refused**: Ensure Ollama is running in your system tray and the Backend terminal (Step 7.1) is active.
+- **Connection Refused**: Ensure Ollama is running in your system tray and the Backend terminal (Step 8.1) is active.
 - **Module not found**: Ensure you have activated the workspace (`venv`) in every new terminal window you open.
 
 ## Evaluation & Testing
